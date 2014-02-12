@@ -1,6 +1,6 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -60,7 +60,8 @@
   {include file="CRM/common/pager.tpl" location="top"}
   {include file="CRM/common/pagerAToZ.tpl"}
   {* handle enable/disable actions*}
-  {include file="CRM/common/enableDisable.tpl"}
+  {include file="CRM/common/enableDisableApi.tpl"}
+  {include file="CRM/common/crmeditable.tpl"}
   {include file="CRM/common/jsortable.tpl"}
     <table id="options" class="display">
       <thead>
@@ -68,6 +69,7 @@
         <th>{ts}Event{/ts}</th>
         <th>{ts}City{/ts}</th>
         <th>{ts}State/Province{/ts}</th>
+        <th>{ts}Type{/ts}</th>
         <th>{ts}Public?{/ts}</th>
         <th>{ts}Starts{/ts}</th>
         <th>{ts}Ends{/ts}</th>
@@ -82,13 +84,14 @@
       </thead>
       {foreach from=$rows key=keys item=row}
         {if $keys neq 'tab'}
-          <tr id="row_{$row.id}" class="{if NOT $row.is_active} disabled{/if}">
+          <tr id="event-{$row.id}" class="crm-entity {if NOT $row.is_active} disabled{/if}">
           <td class="crm-event_{$row.id}">
             <a href="{crmURL p='civicrm/event/info' q="id=`$row.id`&reset=1"}"
                title="{ts}View event info page{/ts}" class="bold">{$row.title}</a>&nbsp;&nbsp;({ts}ID:{/ts} {$row.id})
           </td>
           <td class="crm-event-city">{$row.city}</td>
           <td class="crm-event-state_province">{$row.state_province}</td>
+          <td class="crm-event-event_type">{$row.event_type}</td>
           <td class="crm-event-is_public">{if $row.is_public eq 1} {ts}Yes{/ts} {else} {ts}No{/ts} {/if}</td>
           <td class="crm-event-start_date">{$row.start_date|crmDate:"%b %d, %Y %l:%M %P"}</td>
           <td class="crm-event-end_date">{$row.end_date|crmDate:"%b %d, %Y %l:%M %P"}</td>
@@ -183,7 +186,7 @@
   {include file="CRM/common/pager.tpl" location="bottom"}
   {/strip}
   {if $isSearch eq 0}
-    <div class="status messages">{ts}Don't see your event listed? Try "Search All or by Date Range" above.{/ts}</div>
+    <div class="status messages no-popup">{ts}Don't see your event listed? Try "Search All or by Date Range" above.{/ts}</div>
   {/if}
 </div>
 {else}

@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -35,7 +35,8 @@
 class CRM_Core_I18n {
 
   /**
-   * A PHP-gettext instance for string translation; should stay null if the strings are not to be translated (en_US).
+   * A PHP-gettext instance for string translation;
+   * should stay null if the strings are not to be translated (en_US).
    */
   private $_phpgettext = NULL;
 
@@ -239,7 +240,8 @@ class CRM_Core_I18n {
 
     // do all wildcard translations first
     $config = CRM_Core_Config::singleton();
-    $stringTable = CRM_Utils_Array::value($config->lcMessages,
+    $stringTable = CRM_Utils_Array::value(
+      $config->lcMessages,
       $config->localeCustomStrings
     );
 
@@ -254,15 +256,13 @@ class CRM_Core_I18n {
       }
     }
 
-    if (!$exactMatch &&
+    if (
+      !$exactMatch &&
       isset($stringTable['enabled']['wildcardMatch'])
     ) {
       $search  = array_keys($stringTable['enabled']['wildcardMatch']);
       $replace = array_values($stringTable['enabled']['wildcardMatch']);
-      $text    = str_replace($search,
-        $replace,
-        $text
-      );
+      $text    = str_replace($search, $replace, $text);
     }
 
     // dont translate if we've done exactMatch already

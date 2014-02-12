@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -116,7 +116,12 @@ class CRM_Admin_Page_MailSettings extends CRM_Core_Page_Basic {
 
       //add action links.
       $allMailSettings[$mailSetting->id]['action'] = CRM_Core_Action::formLink(self::links(), $action,
-        array('id' => $mailSetting->id)
+        array('id' => $mailSetting->id),
+        ts('more'),
+        FALSE,
+        'mailSetting.manage.action',
+        'MailSetting',
+        $mailSetting->id
       );
     }
 

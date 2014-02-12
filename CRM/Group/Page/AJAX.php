@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -88,7 +88,7 @@ class CRM_Group_Page_AJAX {
         'group_type', 'visibility', 'org_info', 'links', 'class',
       );
 
-      if (!CRM_Utils_Array::value('showOrgInfo', $params)) {
+      if (empty($params['showOrgInfo'])) {
         unset($selectorElements[6]);
       }
 

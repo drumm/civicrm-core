@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -77,7 +77,7 @@ class CRM_Mailing_Page_Tab extends CRM_Contact_Page_View {
     CRM_Contact_Page_View::checkUserPermission($this);
 
     // set page title
-    CRM_Utils_System::setTitle(ts('Mailings sent to') .  ' ' . $displayName);
+    CRM_Utils_System::setTitle(ts('Mailings sent to %1', array(1 => $displayName)));
   }
 
   /**

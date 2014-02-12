@@ -1,6 +1,6 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -68,6 +68,17 @@
         </div>
         <div class="crm-content">
           {$form.preferred_mail_format.html} {help id="id-emailFormat" file="CRM/Contact/Form/Contact.hlp"}
+        </div>
+      </div>
+      {/if}
+
+      {if !empty($form.communication_style_id)}
+      <div class="crm-summary-row">
+        <div class="crm-label">
+          {$form.communication_style_id.label} {help id="id-communication_style" file="CRM/Contact/Form/Contact.hlp"}
+        </div>
+        <div class="crm-content">
+          {$form.communication_style_id.html}
         </div>
       </div>
       {/if}

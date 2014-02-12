@@ -42,6 +42,9 @@
         <keyColumn>id</keyColumn>
         <labelColumn>display_name</labelColumn>
       </pseudoconstant>
+      <html>
+        <type>Select</type>
+      </html>
   </field>
   <index>
     <name>index_location_type</name>
@@ -51,8 +54,11 @@
   <field>
        <name>email</name>
        <type>varchar</type>
-       <length>64</length>
-       <size>MEDIUM</size>
+       <length>254</length>
+       <html>
+         <type>Text</type>
+         <size>MEDIUM</size>
+       </html>
        <import>true</import>
        <headerPattern>/e.?mail/i</headerPattern>
        <dataPattern>/^[a-zA-Z][\w\.-]*[a-zA-Z0-9]@[a-zA-Z0-9][\w\.-]*[a-zA-Z0-9]\.[a-zA-Z][a-zA-Z\.]*[a-zA-Z]$/</dataPattern>

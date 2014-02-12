@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -588,10 +588,10 @@ WHERE name = %1";
   static function add($params) {
 
     // label or name
-    if (!CRM_Utils_Array::value('label', $params)) {
+    if (empty($params['label'])) {
       return;
     }
-    if (CRM_Utils_Array::value('parent_id', $params) &&
+    if (!empty($params['parent_id']) &&
       !CRM_Core_DAO::getFieldValue('CRM_Contact_DAO_ContactType', $params['parent_id'])
     ) {
       return;
@@ -602,8 +602,6 @@ WHERE name = %1";
     $contactType->id = CRM_Utils_Array::value('id', $params);
     $contactType->is_active = CRM_Utils_Array::value('is_active', $params, 0);
 
-
-
     $contactType->save();
     if ($contactType->find(TRUE)) {
       $contactName = $contactType->name;
@@ -611,7 +609,7 @@ WHERE name = %1";
       $active      = $contactType->is_active;
     }
 
-    if (CRM_Utils_Array::value('id', $params)) {
+    if (!empty($params['id'])) {
       $params = array('name' => "New $contactName");
       $newParams = array(
         'label' => "New $contact",
@@ -812,13 +810,15 @@ WHERE extends = %1 AND " . implode(" OR ", $subTypeClause);
    * @return void
    * @access public
    */
-  function deleteCustomRowsOfSubtype($gID, $subtypes = array(
-    )) {
+  public static function deleteCustomRowsOfSubtype($gID, $subtypes = array()) {
     if (!$gID or empty($subtypes)) {
       return FALSE;
     }
 
     $tableName = CRM_Core_DAO::getFieldValue('CRM_Core_DAO_CustomGroup', $gID, 'table_name');
+
+    // drop triggers CRM-13587
+    CRM_Core_DAO::dropTriggers($tableName);
 
     $subtypeClause = array();
     foreach ($subtypes as $subtype) {
@@ -831,7 +831,11 @@ WHERE extends = %1 AND " . implode(" OR ", $subTypeClause);
 FROM {$tableName} custom
 INNER JOIN civicrm_contact ON civicrm_contact.id = custom.entity_id
 WHERE ($subtypeClause)";
-    return CRM_Core_DAO::singleValueQuery($query);
+
+    CRM_Core_DAO::singleValueQuery($query);
+
+    // rebuild triggers CRM-13587
+    CRM_Core_DAO::triggerRebuild($tableName);
   }
 
   /**

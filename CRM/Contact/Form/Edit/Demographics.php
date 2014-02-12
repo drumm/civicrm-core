@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -57,9 +57,9 @@ class CRM_Contact_Form_Edit_Demographics {
         array('id' => "civicrm_gender_{$var}_{$key}")
       );
     }
-    $form->addGroup($genderOptions, 'gender_id', ts('Gender'));
+    $form->addGroup($genderOptions, 'gender_id', ts('Gender'))->setAttribute('unselectable', TRUE);
 
-    $form->addDate('birth_date', ts('Date of birth'), FALSE, array('formatType' => 'birth'));
+    $form->addDate('birth_date', ts('Date of Birth'), FALSE, array('formatType' => 'birth'));
 
     $form->addElement('checkbox', 'is_deceased', NULL, ts('Contact is deceased'), array('onclick' => "showDeceasedDate()"));
     $form->addDate('deceased_date', ts('Deceased date'), FALSE, array('formatType' => 'birth'));
@@ -71,7 +71,7 @@ class CRM_Contact_Form_Edit_Demographics {
    *
    * @access public
    *
-   * @return None
+   * @return void
    */
   static function setDefaultValues(&$form, &$defaults) {}
 }

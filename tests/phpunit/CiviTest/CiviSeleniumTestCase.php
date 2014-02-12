@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -341,9 +341,13 @@ class CiviSeleniumTestCase extends PHPUnit_Extensions_SeleniumTestCase {
     return $email;
   }
 
-  function webtestAddOrganization($organizationName = "Organization XYZ", $email = NULL) {
+  function webtestAddOrganization($organizationName = "Organization XYZ", $email = NULL, $contactSubtype = NULL) {
 
-    $this->openCiviPage("contact/add", "reset=1&ct=Organization");
+    $url = $this->sboxPath . 'civicrm/contact/add?reset=1&ct=Organization';
+    if ($contactSubtype) {
+      $url = $url . "&cst={$contactSubtype}";
+    }
+    $this->open($url);
     $this->click('organization_name');
     $this->type('organization_name', $organizationName);
 
@@ -360,13 +364,13 @@ class CiviSeleniumTestCase extends PHPUnit_Extensions_SeleniumTestCase {
 
   /**
    */
-  function webtestFillAutocomplete($sortName) {
-    $this->click('contact_1');
-    $this->type('contact_1', $sortName);
-    $this->typeKeys('contact_1', $sortName);
+  function webtestFillAutocomplete($sortName, $fieldName = 'contact_1') {
+    $this->click($fieldName);
+    $this->type($fieldName, $sortName);
+    $this->typeKeys($fieldName, $sortName);
     $this->waitForElementPresent("css=div.ac_results-inner li");
     $this->click("css=div.ac_results-inner li");
-    $this->assertContains($sortName, $this->getValue('contact_1'), "autocomplete expected $sortName but didn’t find it in " . $this->getValue('contact_1'));
+    $this->assertContains($sortName, $this->getValue($fieldName), "autocomplete expected $sortName but didn’t find it in " . $this->getValue($fieldName));
   }
 
   /**
@@ -482,10 +486,10 @@ class CiviSeleniumTestCase extends PHPUnit_Extensions_SeleniumTestCase {
     foreach ($options as $oIndex => $oValue) {
       $validateStrings[] = $oValue['label'];
       $validateStrings[] = $oValue['amount'];
-      if (CRM_Utils_Array::value('membership_type_id', $oValue)) {
+      if (!empty($oValue['membership_type_id'])) {
         $this->select("membership_type_id_{$oIndex}", "value={$oValue['membership_type_id']}");
       }
-      if (CRM_Utils_Array::value('financial_type_id', $oValue)) {
+      if (!empty($oValue['financial_type_id'])) {
         $this->select("option_financial_type_id_{$oIndex}", "label={$oValue['financial_type_id']}");
       }
       $this->type("option_label_{$oIndex}", $oValue['label']);
@@ -496,14 +500,20 @@ class CiviSeleniumTestCase extends PHPUnit_Extensions_SeleniumTestCase {
 
   /**
    */
-  function webtestNewDialogContact($fname = 'Anthony', $lname = 'Anderson', $email = 'anthony@anderson.biz', $type = 4, $selectId = 'profiles_1', $row = 1) {
+  function webtestNewDialogContact($fname = 'Anthony', $lname = 'Anderson', $email = 'anthony@anderson.biz',
+                                   $type = 4, $selectId = 'profiles_1', $row = 1, $prefix = '') {
     // 4 - Individual profile
     // 5 - Organization profile
     // 6 - Household profile
     $this->select($selectId, "value={$type}");
 
     // create new contact using dialog
-    $this->waitForElementPresent("css=div#contact-dialog-{$row}");
+    if (!$prefix) {
+      $this->waitForElementPresent("css=div#contact-dialog-{$row}");
+    }
+    else {
+      $this->waitForElementPresent("css=div#contact-dialog-{$prefix}_{$row}");
+    }
     $this->waitForElementPresent('_qf_Edit_next');
 
     switch ($type) {
@@ -681,6 +691,7 @@ class CiviSeleniumTestCase extends PHPUnit_Extensions_SeleniumTestCase {
     $this->type('billing_city-5', 'San Bernadino');
     $this->click('billing_state_province_id-5');
     $this->select('billing_state_province_id-5', 'label=California');
+    $this->select('billing_country_id-5', 'value=1228');
     $this->type('billing_postal_code-5', '93245');
 
     return array($firstName, $middleName, $lastName);
@@ -863,6 +874,7 @@ class CiviSeleniumTestCase extends PHPUnit_Extensions_SeleniumTestCase {
       $this->click('honor_block_is_active');
       $this->type('honor_block_title', "Honoree Section Title $hash");
       $this->type('honor_block_text', "Honoree Introductory Message $hash");
+      $this->select('crmasmSelect0', "label=Household");
     }
 
     // is confirm enabled? it starts out enabled, so uncheck it if false
@@ -891,7 +903,7 @@ class CiviSeleniumTestCase extends PHPUnit_Extensions_SeleniumTestCase {
       if ($payLater) {
         $this->click('is_pay_later');
         $this->type('pay_later_text', "Pay later label $hash");
-        $this->type('pay_later_receipt', "Pay later instructions $hash");
+        $this->fillRichTextField('pay_later_receipt', "Pay later instructions $hash");
       }
 
       if ($pledges) {
@@ -1019,11 +1031,11 @@ class CiviSeleniumTestCase extends PHPUnit_Extensions_SeleniumTestCase {
       $this->waitForElementPresent('_qf_Custom_next-bottom');
 
       if ($profilePreId) {
-        $this->select('custom_pre_id', "value={$profilePreId}");
+        $this->select('css=tr.crm-contribution-contributionpage-custom-form-block-custom_pre_id span.crm-profile-selector-select select', "value={$profilePreId}");
       }
 
       if ($profilePostId) {
-        $this->select('custom_post_id', "value={$profilePostId}");
+        $this->select('css=tr.crm-contribution-contributionpage-custom-form-block-custom_post_id span.crm-profile-selector-select select', "value={$profilePostId}");
       }
 
       $this->click('_qf_Custom_next-bottom');
@@ -1323,10 +1335,10 @@ class CiviSeleniumTestCase extends PHPUnit_Extensions_SeleniumTestCase {
     // Is status message correct?
     $this->assertTrue($this->isTextPresent("Activity '$subject' has been saved."), "Status message didn't show up after saving!");
 
-    $this->waitForElementPresent("xpath=//div[@id='Activities']//table/tbody/tr[2]/td[9]/span/a[text()='View']");
+    $this->waitForElementPresent("xpath=//div[@id='Activities']//table/tbody/tr[2]/td[8]/span/a[text()='View']");
 
     // click through to the Activity view screen
-    $this->click("xpath=//div[@id='Activities']//table/tbody/tr[2]/td[9]/span/a[text()='View']");
+    $this->click("xpath=//div[@id='Activities']//table/tbody/tr[2]/td[8]/span/a[text()='View']");
     $this->waitForElementPresent('_qf_Activity_cancel-bottom');
 
     // parse URL to grab the activity id
@@ -1735,7 +1747,7 @@ class CiviSeleniumTestCase extends PHPUnit_Extensions_SeleniumTestCase {
   }
 
   function addPaymentInstrument($label, $financialAccount) {
-    $this->openCiviPage('admin/options/payment_instrument', 'group=payment_instrument&action=add&reset=1', "_qf_Options_next-bottom");
+    $this->openCiviPage('admin/options/payment_instrument', 'action=add&reset=1', "_qf_Options_next-bottom");
     $this->type("label", $label);
     $this->select("financial_account_id", "value=$financialAccount");
     $this->click("_qf_Options_next-bottom");

@@ -250,7 +250,7 @@ function _civicrm_regsite_civicrm_postProcess_Profile_RegSite(&$form) {
 
   // now send email to both user and org
   $params = array('from' => CIVICRM_REGSITE_FROM_EMAIL,
-    'toName' => "{CRM_Utils_Array::value( 'regsite_first_name', $params )} {CRM_Utils_Array::value( 'regsite_last_name', $params )}",
+    'toName' => "{$params['regsite_first_name']} {$params['regsite_last_name']}",
     'toEmail' => CRM_Utils_Array::value('regsite_email', $params),
     'cc' => CRM_Utils_Array::value('email-Primary', $params),
     'bcc' => CIVICRM_ARCHIVE_EMAIL,
@@ -317,7 +317,7 @@ function _event_survey_civicrm_buildForm_Profile($formName, &$form) {
   );
   // simplified formatted groupTree
   $groupTree = CRM_Core_BAO_CustomGroup::formatGroupTree($groupTree, 1, $form);
-  CRM_Core_BAO_CustomGroup::buildQuickForm($form, $groupTree, FALSE, 1, 'event_survey_');
+  CRM_Core_BAO_CustomGroup::buildQuickForm($form, $groupTree, FALSE, 'event_survey_');
 
   if (isset($groupTree) && is_array($groupTree)) {
     $participantId = CRM_Utils_Request::retrieve('pid', 'Positive', $form, TRUE, 0, 'REQUEST');

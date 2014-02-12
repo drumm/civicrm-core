@@ -8,31 +8,6 @@
 
     <td class="{$campaignTdClass}">{$form.$elementName.label}<br />
     <div class="crm-select-container">{$form.$elementName.html}</div>
-       {literal}
-       <script type="text/javascript">
-       cj( "select[name=" + "'" + {/literal}'{$elementName}[]'{literal} + "'" + "]" ).crmasmSelect({
-           addItemTarget: 'bottom',
-           animate: true,
-           highlight: true,
-           sortable: true,
-           respectParents: true,
-     selectClass:'crmasmSelectCampaigns'
-       });
-
-       //lets disable the current and past campaign options.
-       cj(function(){
-              cj( 'select[id^="'+ 'crmasmSelectCampaigns' +'"] option' ).each( function( ) {
-                   value = cj(this).val();
-                   if ( value == 'current_campaign' || value == 'past_campaign' ) {
-                        cj(this).css( 'color', 'black' );
-                        cj(this).attr( 'disabled', true );
-                  cj(this).attr( 'selected', false);
-                        cj(this).addClass( 'asmOptionDisabled' );
-                   }
-              });
-       });
-       </script>
-       {/literal}
     </td>
 </tr>
 
@@ -59,7 +34,8 @@
             <div class="status">
             {ts}There are currently no active Campaigns.{/ts}
             {if $campaignInfo.addCampaignURL}
-                {ts 1=$campaignInfo.addCampaignURL}If you want to associate this record with a campaign, you can <a href="%1">create a campaign here</a>.{/ts}
+              {capture assign="link"}href="{$campaignInfo.addCampaignURL}" class="action-item action-item-first"{/capture}
+              {ts 1=$link}If you want to associate this record with a campaign, you can <a %1>create a campaign here</a>.{/ts}
             {/if} {help id="id-campaign_id" file="CRM/Campaign/Form/addCampaignToComponent.hlp"}
             </div>
           {/if}

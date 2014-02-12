@@ -3,10 +3,6 @@ require_once 'CiviTest/CiviUnitTestCase.php';
 require_once 'CiviTest/Contact.php';
 require_once 'CiviTest/Custom.php';
 class CRM_Core_BAO_CustomFieldTest extends CiviUnitTestCase {
-  //@todo make BAO enotice compliant  & remove the line below
-  // WARNING - NEVER COPY & PASTE $_eNoticeCompliant = FALSE
-  // new test classes should be compliant.
-  public $_eNoticeCompliant = FALSE;
   function get_info() {
     return array(
       'name' => 'Custom Field BAOs',
@@ -71,6 +67,27 @@ class CRM_Core_BAO_CustomFieldTest extends CiviUnitTestCase {
 
     Custom::deleteGroup($customGroup);
   }
+
+  function testCreateCustomfieldName() {
+    $customGroup = Custom::createGroup(array(), 'Individual');
+    $fields = array(
+      'label' => 'testFld 2',
+      'name' => 'special_fldlname',
+      'data_type' => 'String',
+      'html_type' => 'Text',
+      'custom_group_id' => $customGroup->id,
+    );
+    $customField = CRM_Core_BAO_CustomField::create($fields);
+    $customFieldID = $this->assertDBNotNull('CRM_Core_DAO_CustomField', $customGroup->id, 'id', 'custom_group_id',
+      'Database check for created CustomField.'
+    );
+    $dbFieldName = $this->assertDBNotNull('CRM_Core_DAO_CustomField', $customFieldID, 'name', 'id', 'Database check for edited CustomField.');
+    $this->assertEquals($fields['name'], $dbFieldName,
+      "Column name set as specified");
+
+    Custom::deleteGroup($customGroup);
+  }
+
 
   function testGetFields() {
     $customGroup = Custom::createGroup(array(), 'Individual');

@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -516,6 +516,28 @@ When enabled, statistics about your CiviCRM installation are reported anonymousl
     'description' => null,
     'help_text' => null,
   ),
+  'blogUrl' => array(
+    'group_name' => 'CiviCRM Preferences',
+    'group' => 'core',
+    'name' => 'blogUrl',
+    'prefetch' => 0,
+    'config_only'=> 0,
+    'type' => 'String',
+    'quick_form_type' => 'Element',
+    'html_type' => 'text',
+    'html_attributes' => array(
+      'size' => 64,
+      'maxlength' => 128,
+    ),
+    'html_type' => 'Text',
+    'default' => '*default*',
+    'add' => '4.3',
+    'title' => 'Blog Feed URL',
+    'is_domain' => 1,
+    'is_contact' => 0,
+    'description' => 'Blog feed URL used by the blog dashlet',
+    'help_text' => 'Use "*default*" for the system default or override with a custom URL',
+  ),
   'communityMessagesUrl' => array(
     'group_name' => 'CiviCRM Preferences',
     'group' => 'core',
@@ -626,5 +648,24 @@ When enabled, statistics about your CiviCRM installation are reported anonymousl
     'is_contact' => 0,
     'description' => null,
     'help_text'   => null,
+    'on_change' => array(
+      array('CRM_Case_Info', 'onToggleComponents'),
+      array('CRM_Core_Component', 'flushEnabledComponents'),
+    ),
+  ),
+
+  'disable_core_css' => array(
+    'group_name' => 'CiviCRM Preferences',
+    'group' => 'core',
+    'name' => 'disable_core_css',
+    'type' => 'Boolean',
+    'quick_form_type' => 'YesNo',
+    'default' => '0',
+    'add' => '4.4',
+    'title' => 'Disable CiviCRM css',
+    'is_domain' => 1,
+    'is_contact' => 0,
+    'description' => 'Prevent the stylesheet "civicrm.css" from being loaded.',
+    'help_text' => NULL,
   ),
 );

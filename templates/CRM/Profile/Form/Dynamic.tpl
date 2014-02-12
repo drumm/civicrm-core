@@ -1,6 +1,6 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -34,40 +34,21 @@
 cj(function($) {
   $('#profile-dialog .crm-container-snippet #Edit').validate(CRM.validate.params);
   var formOptions = {
-    beforeSubmit:  proccessMultiRecordForm //pre-submit callback
+    success:       checkResponse  // post-submit callback 
   };
 
   //binding the callback to snippet profile form
   $('.crm-container-snippet #Edit').ajaxForm(formOptions);
 });
 
-// pre-submit callback
-function proccessMultiRecordForm(formData, jqForm, options) {
-  var queryString = cj.param(formData);
-  queryString = queryString + '{/literal}{$urlParams}{literal}' + '&snippet=1';
-
-  if (cj('#profile-dialog')) {
-    var postUrl = {/literal}"{crmURL p='civicrm/profile/edit' h=0 }"{literal};
-    var response = cj.ajax({
-      type: "POST",
-      url: postUrl,
-      async: false,
-      data: queryString,
-      dataType: "json",
-
-    }).responseText;
-
-    //if there is any form error show the dialog
-    //else redirect to post url
-    if (!cj(response).find('.crm-error').html()) {
-      window.location = '{/literal}{$postUrl}{literal}';
-    }
-
-    // here we could return false to prevent the form from being submitted;
-    // returning anything other than false will allow the form submit to continue
-    return false;
+// post-submit callback 
+function checkResponse(responseText, statusText, xhr, $form) { 
+  //if there is any form error show the dialog
+  //else redirect to post url
+  if (!cj(responseText).find('.crm-error').html()) {
+    window.location = '{/literal}{$postUrl}{literal}';
   }
-}
+} 
 </script>
 {/literal}
 {include file="CRM/Form/validate.tpl"}
@@ -178,9 +159,6 @@ function proccessMultiRecordForm(formData, jqForm, options) {
                   {/foreach}
                 </tr>
                 </table>
-                {if $field.html_type eq 'Radio' and $form.formName eq 'Edit' and $field.is_view neq 1 }
-                  &nbsp;<span class="crm-clear-link">(<a href="#" title="unselect" onclick="unselectRadio('{$n}', '{$form.formName}'); return false;">{ts}clear{/ts}</a>)</span>
-                {/if}
               {/strip}
             </div>
             <div class="clear"></div>
@@ -224,10 +202,7 @@ function proccessMultiRecordForm(formData, jqForm, options) {
                 {else}
                   {$form.$n.html}
                 {/if}
-                {if (($n eq 'gender') or ($field.html_type eq 'Radio' and $form.formName eq 'Edit' and $field.is_required neq 1)) and
-                ($field.is_view neq 1)}
-                  &nbsp;<span class="crm-clear-link">(<a href="#" title="unselect" onclick="unselectRadio('{$n}', '{$form.formName}'); return false;">{ts}clear{/ts}</a>)</span>
-                  {elseif $field.html_type eq 'Autocomplete-Select'}
+                {if $field.html_type eq 'Autocomplete-Select'}
                   {if $field.data_type eq 'ContactReference'}
                     {include file="CRM/Custom/Form/ContactReference.tpl" element_name = $n}
                   {else}
@@ -253,9 +228,7 @@ function proccessMultiRecordForm(formData, jqForm, options) {
         {/if}
       {/if}{* end of main if field name if *}
     {/foreach}
-    </div><!-- end form-layout-compressed for last profile --> {* closing main form layout div when all the fields are built*}
-
-
+   
     {if $isCaptcha && ( $mode eq 8 || $mode eq 4 || $mode eq 1 ) }
       {include file='CRM/common/ReCAPTCHA.tpl'}
       <script type="text/javascript">cj('.recaptcha_label').attr('width', '140px');</script>

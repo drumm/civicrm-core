@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -44,7 +44,7 @@ class CRM_Contact_Form_Edit_Individual {
    * This function provides the HTML form elements that are specific
    * to the Individual Contact Type
    *
-   * @param object $form form object
+   * @param CRM_Core_Form $form form object
    * @param int $inlineEditMode ( 1 for contact summary
    * top bar form and 2 for display name edit )
    *
@@ -55,27 +55,42 @@ class CRM_Contact_Form_Edit_Individual {
     $form->applyFilter('__ALL__', 'trim');
 
     if ( !$inlineEditMode || $inlineEditMode == 1 ) {
+      $nameFields = CRM_Core_BAO_Setting::valueOptions(CRM_Core_BAO_Setting::SYSTEM_PREFERENCES_NAME,
+        'contact_edit_options', TRUE, NULL,
+        FALSE, 'name', TRUE, 'AND v.filter = 2'
+      );
+
       //prefix
       $prefix = CRM_Core_PseudoConstant::get('CRM_Contact_DAO_Contact', 'prefix_id');
-      if (!empty($prefix)) {
-        $form->addElement('select', 'prefix_id', ts('Prefix'), array('' => '') + $prefix);
+      if (isset($nameFields['Prefix']) && !empty($prefix)) {
+        $form->addSelect('prefix_id', array('class' => 'four', 'placeholder' => ' '));
       }
 
       $attributes = CRM_Core_DAO::getAttribute('CRM_Contact_DAO_Contact');
 
+      if (isset($nameFields['Formal Title'])) {
+        $form->addElement('text', 'formal_title', ts('Title'), $attributes['formal_title']);
+      }
+
       // first_name
-      $form->addElement('text', 'first_name', ts('First Name'), $attributes['first_name']);
+      if (isset($nameFields['First Name'])) {
+        $form->addElement('text', 'first_name', ts('First Name'), $attributes['first_name']);
+      }
 
       //middle_name
-      $form->addElement('text', 'middle_name', ts('Middle Name'), $attributes['middle_name']);
+      if (isset($nameFields['Middle Name'])) {
+        $form->addElement('text', 'middle_name', ts('Middle Name'), $attributes['middle_name']);
+      }
 
       // last_name
-      $form->addElement('text', 'last_name', ts('Last Name'), $attributes['last_name']);
+      if (isset($nameFields['Last Name'])) {
+        $form->addElement('text', 'last_name', ts('Last Name'), $attributes['last_name']);
+      }
 
       // suffix
       $suffix = CRM_Core_PseudoConstant::get('CRM_Contact_DAO_Contact', 'suffix_id');
-      if ($suffix) {
-        $form->addElement('select', 'suffix_id', ts('Suffix'), array('' => '') + $suffix);
+      if (isset($nameFields['Suffix']) && $suffix) {
+        $form->addSelect('suffix_id', array('class' => 'four', 'placeholder' => ' '));
       }
     }
 
@@ -142,9 +157,7 @@ class CRM_Contact_Form_Edit_Individual {
     $primaryID = CRM_Contact_Form_Contact::formRule($fields, $errors, $contactID);
 
     // make sure that firstName and lastName or a primary OpenID is set
-    if (!$primaryID && (!CRM_Utils_Array::value('first_name', $fields) ||
-        !CRM_Utils_Array::value('last_name', $fields)
-      )) {
+    if (!$primaryID && (empty($fields['first_name']) || empty($fields['last_name']))) {
       $errors['_qf_default'] = ts('First Name and Last Name OR an email OR an OpenID in the Primary Location should be set.');
     }
 

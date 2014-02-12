@@ -1,6 +1,6 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -41,11 +41,13 @@
 {literal}
 <script type="text/javascript">
 (function($, CRM) {
-  $(".{/literal}{$snippet.css_class}{literal}").crmRevisionLink({
-    contactId: {/literal}{$snippet.contact_id}{literal},
-    tableName: "{/literal}{$snippet.table_name}{literal}",
-    reportId: {/literal}{$snippet.instance_id}{literal}
-  });
+  if ($(".{/literal}{$snippet.css_class}{literal}").length) {
+    $(".{/literal}{$snippet.css_class}{literal}").crmRevisionLink({
+      contactId: {/literal}{$snippet.contact_id}{literal},
+      tableName: "{/literal}{$snippet.table_name}{literal}",
+      reportId: {/literal}{$snippet.instance_id}{literal}
+    });
+  }
 })(cj, CRM);
 </script>
 {/literal}

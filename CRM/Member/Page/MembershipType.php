@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -62,14 +62,12 @@ class CRM_Member_Page_MembershipType extends CRM_Core_Page {
         ),
         CRM_Core_Action::DISABLE => array(
           'name' => ts('Disable'),
-          'extra' => 'onclick = "enableDisable( %%id%%,\'' . 'CRM_Member_BAO_MembershipType' . '\',\'' . 'enable-disable' . '\' );"',
-          'ref' => 'disable-action',
+          'ref' => 'crm-enable-disable',
           'title' => ts('Disable Membership Type'),
         ),
         CRM_Core_Action::ENABLE => array(
           'name' => ts('Enable'),
-          'extra' => 'onclick = "enableDisable( %%id%%,\'' . 'CRM_Member_BAO_MembershipType' . '\',\'' . 'disable-enable' . '\' );"',
-          'ref' => 'enable-action',
+          'ref' => 'crm-enable-disable',
           'title' => ts('Enable Membership Type'),
         ),
         CRM_Core_Action::DELETE => array(
@@ -110,6 +108,7 @@ class CRM_Member_Page_MembershipType extends CRM_Core_Page {
    * @static
    */
   function browse() {
+    CRM_Core_Resources::singleton()->addScriptFile('civicrm', 'js/crm.livePage.js');
     // get all membership types sorted by weight
     $membershipType = array();
     $dao = new CRM_Member_DAO_MembershipType();
@@ -152,7 +151,12 @@ class CRM_Member_Page_MembershipType extends CRM_Core_Page {
         }
         $membershipType[$dao->id]['order'] = $membershipType[$dao->id]['weight'];
         $membershipType[$dao->id]['action'] = CRM_Core_Action::formLink(self::links(), $action,
-          array('id' => $dao->id)
+          array('id' => $dao->id),
+          ts('more'),
+          FALSE,
+          'membershipType.manage.action',
+          'MembershipType',
+          $dao->id
         );
       }
     }

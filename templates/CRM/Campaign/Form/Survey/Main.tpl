@@ -1,6 +1,6 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -107,8 +107,8 @@
     });
 </script>
 {/literal}
-
-{include file="CRM/common/customData.tpl"}
+{* editor has already been included in TabHeader.tpl so set flag true *}
+{include file="CRM/common/customData.tpl" includeWysiwygEditor=true}
 {literal}
   <script type="text/javascript">
     cj(document).ready(function() {

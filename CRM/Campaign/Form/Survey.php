@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -172,8 +172,7 @@ class CRM_Campaign_Form_Survey extends CRM_Core_Form {
   }
 
   function getTemplateFileName() {
-    if ($this->controller->getPrint() == CRM_Core_Smarty::PRINT_NOFORM ||
-      $this->getVar('_surveyId') <= 0 ) {
+    if ($this->controller->getPrint() || $this->getVar('_surveyId') <= 0 ) {
       return parent::getTemplateFileName();
     }
     else {

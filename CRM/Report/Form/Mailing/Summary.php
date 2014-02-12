@@ -2,7 +2,7 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -51,6 +51,8 @@ class CRM_Report_Form_Mailing_Summary extends CRM_Report_Form {
     'bar_3dChart' => 'Bar Chart',
   );
 
+  public $campaignEnabled = False;
+
   function __construct() {
     $this->_columns = array();
 
@@ -63,6 +65,9 @@ class CRM_Report_Form_Mailing_Summary extends CRM_Report_Form {
         ),
         'created_date' => array(
           'title' => ts('Date Created'),
+        ),
+        'subject' => array(
+          'title' => ts('Subject'),
         ),
       ),
       'filters' => array(
@@ -89,7 +94,7 @@ class CRM_Report_Form_Mailing_Summary extends CRM_Report_Form {
     );
 
     $this->_columns['civicrm_mailing_job'] = array(
-      'dao' => 'CRM_Mailing_DAO_Job',
+      'dao' => 'CRM_Mailing_DAO_MailingJob',
       'fields' => array(
         'start_date' => array(
           'title' => ts('Start Date'),
@@ -225,7 +230,23 @@ class CRM_Report_Form_Mailing_Summary extends CRM_Report_Form {
         ),
       ),
     );
-
+    $config = CRM_Core_Config::singleton();
+    $this->campaignEnabled = in_array("CiviCampaign", $config->enableComponents);
+    if ($this->campaignEnabled) {
+      $this->_columns['civicrm_campaign'] = array(
+        'dao' => 'CRM_Campaign_DAO_Campaign',
+        'fields' => array(
+          'title' => array(
+            'title' => ts('Campaign Name'),
+          ),
+        ),
+        'filters' => array(
+          'title' => array(
+            'type' => CRM_Utils_Type::T_STRING,
+          ),
+        ),
+      );
+    }
     parent::__construct();
   }
 
@@ -266,12 +287,10 @@ class CRM_Report_Form_Mailing_Summary extends CRM_Report_Form {
     foreach ($this->_columns as $tableName => $table) {
       if (array_key_exists('fields', $table)) {
         foreach ($table['fields'] as $fieldName => $field) {
-          if (CRM_Utils_Array::value('required', $field) ||
-            CRM_Utils_Array::value($fieldName, $this->_params['fields'])
-          ) {
+          if (!empty($field['required']) || !empty($this->_params['fields'][$fieldName])) {
 
             # for statistics
-            if (CRM_Utils_Array::value('statistics', $field)) {
+            if (!empty($field['statistics'])) {
               switch ($field['statistics']['calc']) {
                 case 'PERCENTAGE':
                   $base_table_column = explode('.', $field['statistics']['base']);
@@ -322,6 +341,13 @@ class CRM_Report_Form_Mailing_Summary extends CRM_Report_Form {
         ON {$this->_aliases['civicrm_mailing_event_trackable_url_open']}.event_queue_id = {$this->_aliases['civicrm_mailing_event_queue']}.id
       LEFT JOIN civicrm_mailing_event_unsubscribe {$this->_aliases['civicrm_mailing_event_unsubscribe']}
         ON {$this->_aliases['civicrm_mailing_event_unsubscribe']}.event_queue_id = {$this->_aliases['civicrm_mailing_event_queue']}.id";
+
+    if ($this->campaignEnabled) {
+      $this->_from .= "
+        LEFT JOIN civicrm_campaign {$this->_aliases['civicrm_campaign']}
+        ON {$this->_aliases['civicrm_campaign']}.id = {$this->_aliases['civicrm_mailing']}.campaign_id";
+    }
+
     // need group by and order by
 
     //print_r($this->_from);
@@ -341,7 +367,7 @@ class CRM_Report_Form_Mailing_Summary extends CRM_Report_Form {
             $from     = CRM_Utils_Array::value("{$fieldName}_from", $this->_params);
             $to       = CRM_Utils_Array::value("{$fieldName}_to", $this->_params);
 
-            $clause = $this->dateClause($field['name'], $relative, $from, $to, $field['type']);
+            $clause = $this->dateClause($this->_aliases[$tableName] . '.' . $field['name'], $relative, $from, $to, $field['type']);
           }
           else {
             $op = CRM_Utils_Array::value("{$fieldName}_op", $this->_params);
@@ -426,7 +452,7 @@ class CRM_Report_Form_Mailing_Summary extends CRM_Report_Form {
   function formRule($fields, $files, $self) {
     $errors = array();
 
-    if (!CRM_Utils_Array::value('charts', $fields)) {
+    if (empty($fields['charts'])) {
       return $errors;
     }
 

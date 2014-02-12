@@ -2,7 +2,7 @@
 
 /*
  +--------------------------------------------------------------------+
-| CiviCRM version 4.3                                                |
+| CiviCRM version 4.4                                                |
 +--------------------------------------------------------------------+
 | Copyright CiviCRM LLC (c) 2004-2013                                |
 +--------------------------------------------------------------------+
@@ -38,6 +38,9 @@ require_once 'tests/phpunit/CiviTest/CiviUnitTestCase.php';
  */
 class api_v3_ProfileTest extends CiviUnitTestCase {
   protected $_apiversion;
+  protected $_profileID = 0;
+  protected $_membershipTypeID;
+  protected $_contactID;
   function get_info() {
     return array(
       'name' => 'Profile Test',
@@ -52,17 +55,22 @@ class api_v3_ProfileTest extends CiviUnitTestCase {
     $config = CRM_Core_Config::singleton();
     $config->countryLimit[1] = 1013;
     $config->stateLimit[1] = 1013;
+    $this->createLoggedInUser();
+    $this->_membershipTypeID = $this->membershipTypeCreate();
   }
 
   function tearDown() {
 
     $this->quickCleanup(array(
-        'civicrm_contact',
-        'civicrm_phone',
-        'civicrm_address',
-      ), TRUE);
+      'civicrm_contact',
+      'civicrm_phone',
+      'civicrm_address',
+      'civicrm_membership',
+      'civicrm_contribution',
+    ), TRUE);
+    $this->callAPISuccess('membership_type', 'delete', array('id' => $this->_membershipTypeID));
     // ok can't be bothered wring an api to do this & truncating is crazy
-    CRM_Core_DAO::executeQuery(' DELETE FROM civicrm_uf_group WHERE id IN (25, 26)');
+    CRM_Core_DAO::executeQuery(" DELETE FROM civicrm_uf_group WHERE id IN ($this->_profileID, 26)");
   }
 
   ////////////// test $this->callAPISuccess3_profile_get //////////////////
@@ -98,13 +106,12 @@ class api_v3_ProfileTest extends CiviUnitTestCase {
     $expected          = current($pofileFieldValues);
     $contactId         = key($pofileFieldValues);
     $params            = array(
-      'profile_id' => 25,
+      'profile_id' => $this->_profileID,
       'contact_id' => $contactId,
     );
     $result = $this->callAPISuccess('profile', 'get', $params);
     foreach ($expected as $profileField => $value) {
-      $this->assertEquals($value, CRM_Utils_Array::value($profileField, $result['values']), "In line " . __LINE__ . " error message: " . "missing/mismatching value for {$profileField}"
-      );
+      $this->assertEquals($value, CRM_Utils_Array::value($profileField, $result['values']));
     }
   }
 
@@ -113,26 +120,62 @@ class api_v3_ProfileTest extends CiviUnitTestCase {
     $expected          = current($pofileFieldValues);
     $contactId         = key($pofileFieldValues);
     $params            = array(
-      'profile_id' => array(25, 1, 'Billing'),
+      'profile_id' => array($this->_profileID, 1, 'Billing'),
       'contact_id' => $contactId,
     );
 
     $result = $this->callAPIAndDocument('profile', 'get', $params, __FUNCTION__, __FILE__);
     foreach ($expected as $profileField => $value) {
-      $this->assertEquals($value, CRM_Utils_Array::value($profileField, $result['values'][25]), " error message: " . "missing/mismatching value for {$profileField}");
+      $this->assertEquals($value, CRM_Utils_Array::value($profileField, $result['values'][$this->_profileID]), " error message: " . "missing/mismatching value for {$profileField}");
     }
     $this->assertEquals('abc1', $result['values'][1]['first_name'], " error message: " . "missing/mismatching value for {$profileField}");
     $this->assertFalse(array_key_exists('email-Primary', $result['values'][1]), 'profile 1 doesn not include email');
     $this->assertEquals($result['values']['Billing'], array(
       'billing_first_name' => 'abc1',
-      'billing_middle_name' => '',
+      'billing_middle_name' => 'J.',
       'billing_last_name' => 'xyz1',
-      'billing_street_address-5' => '',
+      'billing_street_address-5' => '5 Saint Helier St',
+      'billing_city-5' => 'Gotham City',
+      'billing_state_province_id-5' => '1021',
+      'billing_country_id-5' => '1228',
+      'billing-email-5' => 'abc1.xyz1@yahoo.com',
+      'billing_postal_code-5' => '90210',
+      'billing-email-5' => 'abc1.xyz1@yahoo.com',
+      'email-5' => 'abc1.xyz1@yahoo.com',
+    ));
+  }
+
+  function testProfileGetBillingUseIsBillingLocation() {
+    $individual = $this->_createIndividualContact();
+    $contactId  = key($individual);
+    $this->callAPISuccess('address', 'create', array(
+      'is_billing' => 1,
+      'street_address' => 'is billing st',
+      'location_type_id' => 2,
+      'contact_id' => $contactId,
+    ));
+
+    $expected = current($individual);
+
+    $params = array(
+      'profile_id' => array($this->_profileID, 1, 'Billing'),
+      'contact_id' => $contactId,
+    );
+
+    $result = $this->callAPISuccess('profile', 'get', $params);
+    $this->assertEquals('abc1', $result['values'][1]['first_name']);
+    $this->assertEquals(array(
+      'billing_first_name' => 'abc1',
+      'billing_middle_name' => 'J.',
+      'billing_last_name' => 'xyz1',
+      'billing_street_address-5' => 'is billing st',
       'billing_city-5' => '',
       'billing_state_province_id-5' => '',
       'billing_country_id-5' => '',
       'billing-email-5' => 'abc1.xyz1@yahoo.com',
-    ));
+      'email-5' => 'abc1.xyz1@yahoo.com',
+      'billing_postal_code-5' => '',
+    ), $result['values']['Billing']);
   }
 
   function testProfileGetMultipleHasBillingLocation() {
@@ -144,7 +187,7 @@ class api_v3_ProfileTest extends CiviUnitTestCase {
     $expected = current($individual);
 
     $params = array(
-      'profile_id' => array(25, 1, 'Billing'),
+      'profile_id' => array($this->_profileID, 1, 'Billing'),
       'contact_id' => $contactId,
     );
 
@@ -152,15 +195,42 @@ class api_v3_ProfileTest extends CiviUnitTestCase {
     $this->assertEquals('abc1', $result['values'][1]['first_name']);
     $this->assertEquals($result['values']['Billing'], array(
       'billing_first_name' => 'abc1',
-      'billing_middle_name' => '',
+      'billing_middle_name' => 'J.',
       'billing_last_name' => 'xyz1',
       'billing_street_address-5' => '25 Big Street',
       'billing_city-5' => 'big city',
       'billing_state_province_id-5' => '',
       'billing_country_id-5' => '',
       'billing-email-5' => 'big@once.com',
+      'email-5' => 'big@once.com',
+      'billing_postal_code-5' => '',
     ));
   }
+
+  /**
+   * get Billing empty contact - this will return generic defaults
+   */
+  function testProfileGetBillingEmptyContact() {
+
+    $params = array(
+      'profile_id' => array('Billing'),
+    );
+
+    $result = $this->callAPISuccess('profile', 'get', $params);
+    $this->assertEquals(array(
+      'billing_first_name' => '',
+      'billing_middle_name' => '',
+      'billing_last_name' => '',
+      'billing_street_address-5' => '',
+      'billing_city-5' => '',
+      'billing_state_province_id-5' => '',
+      'billing_country_id-5' => '1228',
+      'billing_email-5' => '',
+      'email-5' => '',
+      'billing_postal_code-5' => '',
+    ), $result['values']['Billing']);
+  }
+
   /**
    * check contact activity profile without activity id
    */
@@ -180,7 +250,7 @@ class api_v3_ProfileTest extends CiviUnitTestCase {
 
     $params['activity_id'] = 100001;
     $result = $this->callAPIFailure('profile', 'get', $params,
-       'Invalid Activity Id (aid).');
+      'Invalid Activity Id (aid).');
   }
 
   /*
@@ -230,25 +300,77 @@ class api_v3_ProfileTest extends CiviUnitTestCase {
     }
   }
 
-  /////////////// test $this->callAPISuccess3_profile_set //////////////////
+  /**
+   * Check getfields works & gives us our fields
+   */
+  function testGetFields() {
+    $this->_createIndividualProfile();
+    $this->_addCustomFieldToProfile($this->_profileID);
+    $result = $this->callAPIAndDocument('profile', 'getfields', array('action' => 'submit', 'profile_id' => $this->_profileID), __FUNCTION__, __FILE__,
+      'demonstrates retrieving profile fields passing in an id');
+    $this->assertArrayKeyExists('first_name', $result['values']);
+    $this->assertEquals('2', $result['values']['first_name']['type']);
+    $this->assertEquals('Email', $result['values']['email-primary']['title']);
+    $this->assertEquals('civicrm_state_province', $result['values']['state_province-1']['pseudoconstant']['table']);
+    $this->assertEquals('defaultValue', $result['values']['custom_1']['default_value']);
+    $this->assertFalse(array_key_exists('participant_status', $result['values']));
+  }
+  /**
+   * Check getfields works & gives us our fields - partipant profile
+   */
+  function testGetFieldsParticipantProfile() {
+    $result = $this->callAPISuccess('profile', 'getfields', array(
+      'action' => 'submit',
+      'profile_id' => 'participant_status',
+      'get_options' => 'all')
+    );
+    $this->assertTrue(array_key_exists('participant_status_id', $result['values']));
+    $this->assertEquals('Attended', $result['values']['participant_status_id']['options'][2]);
+    $this->assertEquals(array('participant_status'), $result['values']['participant_status_id']['api.aliases']);
+  }
 
   /**
-   * check with no array
+   * Check getfields works & gives us our fields - membership_batch_entry
+   * (getting to the end with no e-notices is pretty good evidence it's working)
    */
-  function testProfileSetNoArray() {
-    $params = NULL;
-    $result = $this->callAPIFailure('profile', 'set', $params);
-    $this->assertEquals($result['error_message'], 'Input variable `params` is not an array');
+  function testGetFieldsMembershipBatchProfile() {
+    $result = $this->callAPISuccess('profile', 'getfields', array(
+      'action' => 'submit',
+      'profile_id' => 'membership_batch_entry',
+      'get_options' => 'all')
+    );
+    $this->assertTrue(array_key_exists('total_amount', $result['values']));
+    $this->assertTrue(array_key_exists('financial_type_id', $result['values']));
+    $this->assertEquals(array('contribution_type_id', 'contribution_type', 'financial_type'), $result['values']['financial_type_id']['api.aliases']);
+    $this->assertTrue(!array_key_exists('financial_type', $result['values']));
+    $this->assertEquals(12, $result['values']['receive_date']['type']);
   }
+
+  /**
+   * Check getfields works & gives us our fields - do them all
+   * (getting to the end with no e-notices is pretty good evidence it's working)
+   */
+  function testGetFieldsAllProfiles() {
+    $result = $this->callAPISuccess('uf_group', 'get', array('return' => 'id'));
+    $profileIDs = array_keys($result['values']);
+    foreach ($profileIDs as $profileID) {
+      $result = $this->callAPISuccess('profile', 'getfields', array(
+        'action' => 'submit',
+        'profile_id' => $profileID,
+        'get_options' => 'all')
+      );
+    }
+  }
+  /////////////// test $this->callAPISuccess3_profile_set //////////////////
 
   /**
    * check Without ProfileId
    */
-  function testProfileSetWithoutProfileId() {
+  function testProfileSubmitWithoutProfileId() {
     $params = array(
       'contact_id' => 1,
     );
-    $result = $this->callAPIFailure('profile', 'set', $params,
+    $result = $this->callAPIFailure('profile', 'submit', $params,
       'Mandatory key(s) missing from params array: profile_id'
     );
   }
@@ -256,18 +378,18 @@ class api_v3_ProfileTest extends CiviUnitTestCase {
   /**
    * check with no invalid profile Id
    */
-  function testProfileSetInvalidProfileId() {
+  function testProfileSubmitInvalidProfileId() {
     $params = array(
       'contact_id' => 1,
       'profile_id' => 1000,
     );
-    $result = $this->callAPIFailure('profile', 'set', $params);
+    $result = $this->callAPIFailure('profile', 'submit', $params);
   }
 
   /**
    * check with missing required field in profile
    */
-  function testProfileSetCheckProfileRequired() {
+  function testProfileSubmitCheckProfileRequired() {
     $pofileFieldValues = $this->_createIndividualContact();
     current($pofileFieldValues);
     $contactId = key($pofileFieldValues);
@@ -279,19 +401,106 @@ class api_v3_ProfileTest extends CiviUnitTestCase {
       'state_province-1' => '1000',
     );
 
-    $params = array_merge(array('profile_id' => 25, 'contact_id' => $contactId),
+    $params = array_merge(array('profile_id' => $this->_profileID, 'contact_id' => $contactId),
       $updateParams
     );
 
-    $result = $this->callAPIFailure('profile', 'set', $params,
-      'Missing required parameters for profile id 25: email-Primary'
+    $result = $this->callAPIFailure('profile', 'submit', $params,
+      "Missing required parameters for profile id $this->_profileID: email-Primary"
     );
   }
 
   /**
    * check with success
    */
-  function testProfileSet() {
+  function testProfileSubmit() {
+    $pofileFieldValues = $this->_createIndividualContact();
+    current($pofileFieldValues);
+    $contactId = key($pofileFieldValues);
+
+    $updateParams = array(
+      'first_name' => 'abc2',
+      'last_name' => 'xyz2',
+      'email-primary' => 'abc2.xyz2@gmail.com',
+      'phone-1-1' => '022 321 826',
+      'country-1' => '1013',
+      'state_province-1' => '1000',
+    );
+
+    $params = array_merge(array(
+      'profile_id' => $this->_profileID,
+      'contact_id' => $contactId,
+    ), $updateParams);
+
+    $result = $this->callAPIAndDocument('profile', 'submit', $params, __FUNCTION__, __FILE__);
+
+    $getParams = array(
+      'profile_id' => $this->_profileID,
+      'contact_id' => $contactId,
+    );
+    $profileDetails = $this->callAPISuccess('profile', 'get', $getParams);
+
+    foreach ($updateParams as $profileField => $value) {
+      $this->assertEquals($value, CRM_Utils_Array::value($profileField, $profileDetails['values']), "missing/mismatching value for {$profileField}"
+      );
+    }
+    unset($params['email-primary']);
+    $params['email-Primary'] = 'my@mail.com';
+    $this->callAPISuccess('profile', 'submit',  $params);
+    $profileDetails = $this->callAPISuccess('profile', 'get', $getParams);
+    $this->assertEquals('my@mail.com', $profileDetails['values']['email-Primary']);
+  }
+
+  /**
+   * Ensure caches are being cleared so we don't get into a debugging trap because of cached metadata
+   * First we delete & create to increment the version & then check for caching probs
+   */
+  function testProfileSubmitCheckCaching() {
+    $this->callAPISuccess('membership_type', 'delete', array('id' => $this->_membershipTypeID));
+    $this->_membershipTypeID = $this->membershipTypeCreate();
+
+    $membershipTypes = $this->callAPISuccess('membership_type', 'get', array());
+    $profileFields = $this->callAPISuccess('profile', 'getfields', array('get_options' => 'all', 'action' => 'submit', 'profile_id' => 'membership_batch_entry'));
+    $getoptions = $this->callAPISuccess('membership', 'getoptions', array('field' => 'membership_type', 'context' => 'validate'));
+    $this->assertEquals(array_keys($membershipTypes['values']), array_keys($getoptions['values']));
+    $this->assertEquals(array_keys($membershipTypes['values']), array_keys($profileFields['values']['membership_type_id']['options']));
+
+}
+
+  /**
+   * Test that the fields are returned in the right order despite the faffing around that goes on
+   */
+  function testMembershipGetFieldsOrder() {
+    $result = $this->callAPISuccess('profile', 'getfields', array('action' => 'submit', 'profile_id' => 'membership_batch_entry'));
+    $weight = 1;
+    foreach($result['values'] as $fieldName => $field) {
+      if($fieldName == 'profile_id') {
+        continue;
+      }
+      $this->assertEquals($field['weight'], $weight);
+      $weight++;
+    }
+  }
+  /**
+   * Check we can submit membership batch profiles (create mode)
+   */
+  function testProfileSubmitMembershipBatch() {
+    $this->_contactID = $this->individualCreate();
+    $this->callAPISuccess('profile', 'submit', array(
+     'profile_id' => 'membership_batch_entry',
+     'financial_type_id' => 1,
+     'membership_type' => $this->_membershipTypeID,
+     'join_date' => 'now',
+     'total_amount' => 10,
+     'contribution_status_id' => 1,
+     'receive_date' => 'now',
+     'contact_id' => $this->_contactID,
+    ));
+  }
+  /**
+   * set is deprecated but we need to ensure it still works
+   */
+  function testLegacySet() {
     $pofileFieldValues = $this->_createIndividualContact();
     current($pofileFieldValues);
     $contactId = key($pofileFieldValues);
@@ -306,14 +515,14 @@ class api_v3_ProfileTest extends CiviUnitTestCase {
     );
 
     $params = array_merge(array(
-        'profile_id' => 25,
-        'contact_id' => $contactId,
-      ), $updateParams);
+      'profile_id' => $this->_profileID,
+      'contact_id' => $contactId,
+    ), $updateParams);
 
-    $result = $this->callAPIAndDocument('profile', 'set', $params, __FUNCTION__, __FILE__);
-
+    $result = $this->callAPISuccess('profile', 'set', $params);
+    $this->assertArrayKeyExists('values', $result);
     $getParams = array(
-      'profile_id' => 25,
+      'profile_id' => $this->_profileID,
       'contact_id' => $contactId,
     );
     $profileDetails = $this->callAPISuccess('profile', 'get', $getParams);
@@ -323,39 +532,33 @@ class api_v3_ProfileTest extends CiviUnitTestCase {
       );
     }
   }
-
   /*
      * check contact activity profile without activity id
      */
-  function testContactActivitySetWithoutActivityId() {
+  function testContactActivitySubmitWithoutActivityId() {
     list($params, $expected) = $this->_createContactWithActivity();
 
     $params = array_merge($params, $expected);
     unset($params['activity_id']);
-    $result = $this->callAPIFailure('profile', 'set', $params);
+    $result = $this->callAPIFailure('profile', 'submit', $params);
     $this->assertEquals($result['error_message'], 'Mandatory key(s) missing from params array: activity_id');
-
-    $this->quickCleanup(array('civicrm_uf_field', 'civicrm_uf_join', 'civicrm_uf_group', 'civicrm_custom_field', 'civicrm_custom_group', 'civicrm_contact'));
   }
 
   /*
      * check contact activity profile wrong activity id
      */
-  function testContactActivitySetWrongActivityId() {
+  function testContactActivitySubmitWrongActivityId() {
     list($params, $expected) = $this->_createContactWithActivity();
-
     $params = array_merge($params, $expected);
     $params['activity_id'] = 100001;
-    $result = $this->callAPIFailure('profile', 'set', $params);
+    $result = $this->callAPIFailure('profile', 'submit', $params);
     $this->assertEquals($result['error_message'], 'Invalid Activity Id (aid).');
-
-    $this->quickCleanup(array('civicrm_uf_field', 'civicrm_uf_join', 'civicrm_uf_group', 'civicrm_custom_field', 'civicrm_custom_group', 'civicrm_contact'));
   }
 
   /*
      * check contact activity profile with wrong activity type
      */
-  function testContactActivitySetWrongActivityType() {
+  function testContactActivitySubmitWrongActivityType() {
     //flush cache by calling with reset
     $activityTypes = CRM_Core_PseudoConstant::activityType(TRUE, TRUE, TRUE, 'name', TRUE);
 
@@ -381,14 +584,14 @@ class api_v3_ProfileTest extends CiviUnitTestCase {
 
     $params = array_merge($params, $expected);
     $params['activity_id'] = $activityValues['id'];
-    $result = $this->callAPIFailure('profile', 'set', $params,
+    $result = $this->callAPIFailure('profile', 'submit', $params,
       'This activity cannot be edited or viewed via this profile.');
   }
 
   /*
      * check contact activity profile with success
      */
-  function testContactActivitySetSuccess() {
+  function testContactActivitySubmitSuccess() {
     list($params, $expected) = $this->_createContactWithActivity();
 
     $updateParams = array(
@@ -402,8 +605,8 @@ class api_v3_ProfileTest extends CiviUnitTestCase {
       'activity_status_id' => '2',
     );
     $profileParams = array_merge($params, $updateParams);
-    $profile       = $this->callAPISuccess('profile', 'set', $profileParams);
-    $result        = $this->callAPISuccess('profile', 'get', $params);
+    $this->callAPISuccess('profile', 'submit', $profileParams);
+    $result = $this->callAPISuccess('profile', 'get', $params);
 
     foreach ($updateParams as $profileField => $value) {
       $this->assertEquals($value, CRM_Utils_Array::value($profileField, $result['values']), "In line " . __LINE__ . " error message: " . "missing/mismatching value for {$profileField}"
@@ -442,7 +645,7 @@ class api_v3_ProfileTest extends CiviUnitTestCase {
     $contactId = key($pofileFieldValues);
 
     $params = array(
-      'profile_id' => 25,
+      'profile_id' => $this->_profileID,
       'contact_id' => $contactId,
       'first_name' => 'abc2',
       'last_name' => 'xyz2',
@@ -498,21 +701,23 @@ class api_v3_ProfileTest extends CiviUnitTestCase {
   /*
      * Helper function to create an Individual with address/email/phone info. Import UF Group and UF Fields
      */
-  function _createIndividualContact() {
-    $contactParams = array(
+  function _createIndividualContact($params = array()) {
+    $contactParams = array_merge(array(
       'first_name' => 'abc1',
       'last_name' => 'xyz1',
-      'contact_type' => 'Individual',
       'email' => 'abc1.xyz1@yahoo.com',
       'api.address.create' => array(
         'location_type_id' => 1,
         'is_primary' => 1,
-        'name' => 'Saint Helier St',
+        'street_address' => '5 Saint Helier St',
         'county' => 'Marin',
         'country' => 'United States',
         'state_province' => 'Michigan',
         'supplemental_address_1' => 'Hallmark Ct',
         'supplemental_address_2' => 'Jersey Village',
+        'postal_code' => '90210',
+        'city' => 'Gotham City',
+        'is_billing' => 0,
       ),
       'api.phone.create' => array(
         'location_type_id' => '1',
@@ -520,39 +725,16 @@ class api_v3_ProfileTest extends CiviUnitTestCase {
         'phone_type_id' => '1',
         'is_primary' => '1',
       ),
+     ), $params
     );
 
-    $contact = $this->callAPISuccess('contact', 'create', $contactParams);
-
-    $keys  = array_keys($contact['values']);
-    $contactId = array_pop($keys);
-
-    $this->assertEquals(0, $contact['values'][$contactId]['api.address.create']['is_error'], "In line " . __LINE__ . " error message: " . CRM_Utils_Array::value('error_message', $contact['values'][$contactId]['api.address.create'])
-    );
-    $this->assertEquals(0, $contact['values'][$contactId]['api.phone.create']['is_error'], "In line " . __LINE__ . " error message: " . CRM_Utils_Array::value('error_message', $contact['values'][$contactId]['api.phone.create'])
-    );
-
-    // Create new profile having group_type: Contact,Individual
-    $op = new PHPUnit_Extensions_Database_Operation_Insert();
-    $op->execute($this->_dbconn,
-      new PHPUnit_Extensions_Database_DataSet_XMLDataSet(
-        dirname(__FILE__) . "/dataset/uf_group_25.xml"
-      )
-    );
-    // Create Contact + Idividual fields for profile
-    $op = new PHPUnit_Extensions_Database_Operation_Insert();
-    $op->execute($this->_dbconn,
-      new PHPUnit_Extensions_Database_DataSet_XMLDataSet(
-        dirname(__FILE__) . "/dataset/uf_field_uf_group_25.xml"
-      )
-    );
-
-
+    $this->_contactID = $this->individualCreate($contactParams);
+    $this->_createIndividualProfile();
     // expected result of above created profile with contact Id $contactId
-    $profileData[$contactId] = array(
+    $profileData[$this->_contactID] = array(
       'first_name' => 'abc1',
       'last_name' => 'xyz1',
-      'email-Primary' => 'abc1.xyz1@yahoo.com',
+      'email-primary' => 'abc1.xyz1@yahoo.com',
       'phone-1-1' => '021 512 755',
       'country-1' => '1228',
       'state_province-1' => '1021',
@@ -619,7 +801,7 @@ class api_v3_ProfileTest extends CiviUnitTestCase {
       'profile_id' => 26,
       'contact_id' => $contactId,
       'activity_id' => $activityValues['id'],
-         );
+    );
 
     // expected result of above created profile
     $expected = array(
@@ -635,6 +817,82 @@ class api_v3_ProfileTest extends CiviUnitTestCase {
     );
 
     return array($profileParams, $expected);
+  }
+  /**
+   * Create a profile
+   */
+  function _createIndividualProfile() {
+
+    // creating these via the api as we want to utilise & test the flushing of caches when fields created
+    // via the api
+
+    $ufGroupParams = array(
+      'group_type' => 'Individual,Contact',// really we should remove this & test the ufField create sets it
+      'name' => 'test_individual_contact_profile',
+      'title' => 'Flat Coffee',
+      'api.uf_field.create' => array(
+        array(
+          'field_name' => 'first_name',
+          'is_required' => 1,
+          'visibility' => 'Public Pages and Listings',
+          'field_type' => 'Individual',
+          'label' => 'First Name',
+        ),
+        array(
+          'field_name' => 'last_name',
+          'is_required' => 1,
+          'visibility' => 'Public Pages and Listings',
+          'field_type' => 'Individual',
+          'label' => 'Last Name',
+        ),
+        array(
+          'field_name' => 'email',
+          'is_required' => 1,
+          'visibility' => 'Public Pages and Listings',
+          'field_type' => 'Contact',
+          'label' => 'Email',
+        ),
+        array(
+          'field_name' => 'phone',
+          'is_required' => 1,
+          'visibility' => 'Public Pages and Listings',
+          'field_type' => 'Contact',
+          'location_type_id' => 1,
+          'phone_type_id' => 1,
+          'label' => 'Phone'
+        ),
+        array(
+          'field_name' => 'country',
+          'is_required' => 1,
+          'visibility' => 'Public Pages and Listings',
+          'field_type' => 'Contact',
+          'location_type_id' => 1,
+          'label' => 'Country'
+        ),
+        array(
+          'field_name' => 'state_province',
+          'is_required' => 1,
+          'visibility' => 'Public Pages and Listings',
+          'field_type' => 'Contact',
+          'location_type_id' => 1,
+          'label' => 'State Province'
+        ),
+        array(
+          'field_name' => 'postal_code',
+          'is_required' => 0,
+          'field_type' => 'Contact',
+          'location_type_id' => 1,
+          'label' => 'State Province'
+         ),
+      ),
+    );
+    $profile = $this->callAPISuccess('uf_group', 'create', $ufGroupParams);
+    $this->_profileID = $profile['id'];
+  }
+
+  function _addCustomFieldToProfile($profileID) {
+    $ids = $this->entityCustomGroupWithSingleFieldCreate(__FUNCTION__, '');
+    $this->uFFieldCreate(array('uf_group_id' => $profileID, 'field_name' => 'custom_' . $ids['custom_field_id'], 'contact_type' => 'Contact'));
   }
 }
 

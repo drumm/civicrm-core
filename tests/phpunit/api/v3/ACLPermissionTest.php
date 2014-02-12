@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -40,7 +40,7 @@ class api_v3_ACLPermissionTest extends CiviUnitTestCase {
   protected $hookClass = NULL;
   public $DBResetRequired = FALSE;
 
-  public $_eNoticeCompliant = TRUE;
+
 
   protected $_entity;
 

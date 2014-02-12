@@ -4,7 +4,7 @@
   var ajaxFormParams = {
     dataType:'json',
     beforeSubmit: function(arr, $form, options) {
-      addCiviOverlay($form);
+      $form.block();
     },
     success: requestHandler,
     error: errorHandler
@@ -18,11 +18,11 @@
       data.reset = 1;
       o.addClass('form');
       $('.crm-edit-ready').removeClass('crm-edit-ready');
-      addCiviOverlay(o);
+      o.block();
       $.getJSON(CRM.url('civicrm/ajax/inline', data))
         .fail(errorHandler)
         .done(function(response) {
-          removeCiviOverlay(o);
+          o.unblock();
           o.css('overflow', 'hidden').wrapInner('<div class="inline-edit-hidden-content" style="display:none" />').append(response.content);
           // Smooth resizing
           var newHeight = $('.crm-container-snippet', o).height();
@@ -36,7 +36,7 @@
           $('form', o).validate(CRM.validate.params);
           ajaxFormParams.data = data;
           $('form', o).ajaxForm(ajaxFormParams);
-          o.trigger('crmFormLoad');
+          o.trigger('crmLoad').trigger('crmFormLoad');
         });
     }
   };
@@ -44,7 +44,7 @@
   function requestHandler(response) {
     var o = $('div.crm-inline-edit.form');
 
-    if (response.status == 'save' || response.status == 'cancel') {
+    if (response.status == 'success' || response.status == 'cancel') {
       o.trigger('crmFormSuccess', [response]);
       $('.crm-inline-edit-container').addClass('crm-edit-ready');
       var data = o.data('edit-params');
@@ -90,11 +90,12 @@
       }
       // Update changelog tab and contact footer
       if (response.changeLog.count) {
-        $("#tab_log a em").html(response.changeLog.count);
+        CRM.tabHeader.updateCount('#tab_log', response.changeLog.count);
       }
       $("#crm-record-log").replaceWith(response.changeLog.markup);
-      if ($('#Change_Log div').length) {
-        $('#Change_Log').load($("#tab_log a").attr('href'));
+      // Refresh tab contents - Simple logging
+      if (!CRM.reloadChangeLogTab && $('#changeLog').closest('.ui-tabs-panel').data('civiCrmSnippet')) {
+        $('#changeLog').closest('.ui-tabs-panel').crmSnippet('destroy');
       }
     }
     else {
@@ -152,10 +153,16 @@
 
   function errorHandler(response) {
     CRM.alert(ts('Unable to reach the server. Please refresh this page in your browser and try again.'), ts('Network Error'), 'error');
-    removeCiviOverlay($('.crm-inline-edit.form form'));
+    $('.crm-inline-edit.form form').unblock();
   }
 
   $('document').ready(function() {
+    // don't perform inline edit during print mode
+    if (CRM.summaryPrint.mode) {
+      $('div').removeClass('crm-inline-edit');
+      $('.crm-inline-block-content > div.crm-edit-help').remove();
+      $('div.crm-inline-block-content').removeAttr('title');
+    }
     // Set page title
     var oldName = 'CiviCRM';
     var nameTitle = $('#crm-remove-title');
@@ -173,8 +180,7 @@
     function refreshTitle() {
       var contactName = $('.crm-summary-display_name').text();
       contactName = $.trim(contactName);
-      var title = $('title').html().replace(oldName, contactName);
-      document.title = title;
+      document.title = $('title').html().replace(oldName, contactName);
       oldName = contactName;
     }
     $('#contactname-block').load(refreshTitle);
@@ -278,10 +284,45 @@
         $('.crm-inline-edit.form :submit[name$=cancel]').click();
       }
     });
-    // Switch tabs when clicking log link
-    $('#crm-container').on('click', '#crm-record-log a.crm-log-view', function() {
-      $('#tab_log a').click();
-      return false;
-    });
+    $('#crm-container')
+      // Switch tabs when clicking log link
+      .on('click', '#crm-record-log a.crm-log-view', function() {
+        $('#tab_log a').click();
+        return false;
+      })
+      // Handle action links in popup
+      .on('click', '.crm-contact_actions-list a, .crm-contact_activities-list a', function() {
+        var tabName = $(this).data('tab') || 'summary';
+        var $tab = $('#tab_' + tabName);
+        var $panel = $('#' + $tab.attr('aria-controls'));
+        var url = $(this).attr('href');
+        if (url !== '#') {
+          CRM.loadForm(url)
+            .on('crmFormSuccess', function() {
+              if ($panel.data('civiCrmSnippet')) {
+                $panel.crmSnippet('refresh');
+              }
+              $('#mainTabContainer').tabs('option', 'active', $tab.prevAll().length);
+            });
+        } else {
+          $('#mainTabContainer').tabs('option', 'active', $tab.prevAll().length);
+        }
+        $('#crm-contact-actions-list').hide();
+        return false;
+      });
+    $(document)
+      // Actions menu
+      .on('click', function(e) {
+        if ($(e.target).is('#crm-contact-actions-link, #crm-contact-actions-link *')) {
+          $('#crm-contact-actions-list').show();
+          return false;
+        }
+        $('#crm-contact-actions-list').hide();
+      })
+      // Reload changelog whenever an inline or popup form submits
+      .on('crmFormSuccess', function(e) {
+        CRM.reloadChangeLogTab && CRM.reloadChangeLogTab();
+      });
+    $().crmAccordions();
   });
 })(cj);

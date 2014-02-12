@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -467,6 +467,9 @@ AND    $mg.mailing_id = {$mailing_id}
     $aclWhere = $aclWhere ? "WHERE {$aclWhere}" : '';
     $limitString = NULL;
     if ($limit && $offset !== NULL) {
+      $offset = CRM_Utils_Type::escape($offset, 'Int');
+      $limit = CRM_Utils_Type::escape($limit, 'Int');
+
       $limitString = "LIMIT $offset, $limit";
     }
 
@@ -519,7 +522,7 @@ ORDER BY   i.contact_id, i.{$tempColumn}
   private function _getMailingGroupIds($type = 'Include') {
     $mailingGroup = new CRM_Mailing_DAO_MailingGroup();
     $group = CRM_Contact_DAO_Group::getTableName();
-    if (!isset($thi->sid)) {
+    if (!isset($this->id)) {
       // we're just testing tokens, so return any group
       $query = "SELECT   id AS entity_id
                       FROM     $group
@@ -1228,7 +1231,7 @@ ORDER BY   civicrm_email.is_bulkmail DESC
     CRM_Utils_Hook::alterMailParams($mailParams, 'civimail');
 
     // CRM-10699 support custom email headers
-    if (CRM_Utils_Array::value('headers', $mailParams)) {
+    if (!empty($mailParams['headers'])) {
       $headers = array_merge($headers, $mailParams['headers']);
     }
     //cycle through mailParams and set headers array
@@ -1454,7 +1457,7 @@ ORDER BY   civicrm_email.is_bulkmail DESC
 
     $result = $mailing->save();
 
-    if (CRM_Utils_Array::value('mailing', $ids)) {
+    if (!empty($ids['mailing'])) {
       CRM_Utils_Hook::post('edit', 'Mailing', $mailing->id, $mailing);
     }
     else {
@@ -1517,13 +1520,12 @@ ORDER BY   civicrm_email.is_bulkmail DESC
         'from_email'      => $domain_email,
         'from_name'       => $domain_name,
         'msg_template_id' => NULL,
-        'contact_id'      => $params['created_id'],
         'created_id'      => $params['created_id'],
-        'approver_id'     => $params['created_id'],
+        'approver_id'     => NULL,
         'auto_responder'  => 0,
         'created_date'    => date('YmdHis'),
-        'scheduled_date'  => date('YmdHis'),
-        'approval_date'   => date('YmdHis'),
+        'scheduled_date'  => NULL,
+        'approval_date'   => NULL,
       );
 
       // Get the default from email address, if not provided.
@@ -1563,8 +1565,7 @@ ORDER BY   civicrm_email.is_bulkmail DESC
     $mg = new CRM_Mailing_DAO_MailingGroup();
     foreach (array('groups', 'mailings') as $entity) {
       foreach (array('include', 'exclude', 'base') as $type) {
-        if (isset($params[$entity]) &&
-          CRM_Utils_Array::value($type, $params[$entity]) &&
+        if (isset($params[$entity]) && !empty($params[$entity][$type]) &&
           is_array($params[$entity][$type])) {
           foreach ($params[$entity][$type] as $entityId) {
             $mg->reset();
@@ -1595,16 +1596,20 @@ ORDER BY   civicrm_email.is_bulkmail DESC
     $transaction->commit();
 
     /**
-     * 'approval_status_id' set in
-     * CRM_Mailing_Form_Schedule::postProcess() or via API.
+     * create parent job if not yet created
+     * condition on the existence of a scheduled date
      */
-    if (isset($params['approval_status_id']) && $params['approval_status_id']) {
+    if (!empty($params['scheduled_date']) && $params['scheduled_date'] != 'null') {
       $job = new CRM_Mailing_BAO_MailingJob();
       $job->mailing_id = $mailing->id;
       $job->status = 'Scheduled';
       $job->is_test = 0;
-      $job->scheduled_date = $params['scheduled_date'];
-      $job->save();
+
+      if ( !$job->find(TRUE) ) {
+        $job->scheduled_date = $params['scheduled_date'];
+        $job->save();
+      }
+
       // Populate the recipients.
       $mailing->getRecipients($job->id, $mailing->id, NULL, NULL, TRUE, FALSE);
     }
@@ -1914,7 +1919,7 @@ ORDER BY   civicrm_email.is_bulkmail DESC
       $report['event_totals']['queue'] = self::getRecipientsCount($mailing_id, $mailing_id);
     }
 
-    if (CRM_Utils_Array::value('queue', $report['event_totals'])) {
+    if (!empty($report['event_totals']['queue'])) {
       $report['event_totals']['delivered_rate'] = (100.0 * $report['event_totals']['delivered']) / $report['event_totals']['queue'];
       $report['event_totals']['bounce_rate'] = (100.0 * $report['event_totals']['bounce']) / $report['event_totals']['queue'];
       $report['event_totals']['unsubscribe_rate'] = (100.0 * $report['event_totals']['unsubscribe']) / $report['event_totals']['queue'];
@@ -2027,7 +2032,7 @@ ORDER BY   civicrm_email.is_bulkmail DESC
       ) as $key) {
       $url          = 'mailing/detail';
       $reportFilter = "reset=1&mailing_id_value={$mailing_id}";
-      $searchFilter = "force=1&mailing_id={$mailing_id}";
+      $searchFilter = "force=1&mailing_id=%%mid%%";
       switch ($key) {
         case 'delivered':
           $reportFilter .= "&delivery_status_value=successful";
@@ -2074,7 +2079,16 @@ ORDER BY   civicrm_email.is_bulkmail DESC
       if (array_key_exists(CRM_Core_Action::ADVANCED, $actionLinks)) {
         $actionLinks[CRM_Core_Action::ADVANCED]['qs'] = $searchFilter;
       }
-      $report['event_totals']['actionlinks'][$key] = CRM_Core_Action::formLink($actionLinks, $action, array());
+      $report['event_totals']['actionlinks'][$key] = CRM_Core_Action::formLink(
+        $actionLinks,
+        $action,
+        array('mid' => $mailing_id),
+        ts('more'),
+        FALSE,
+        'mailing.report.action',
+        'Mailing',
+        $mailing_id
+      );
     }
 
     return $report;
@@ -2158,11 +2172,10 @@ ORDER BY   civicrm_email.is_bulkmail DESC
     $groups = CRM_Core_PseudoConstant::group(NULL, FALSE);
     if (!empty($groups)) {
       $groupIDs = implode(',', array_keys($groups));
-      $selectClause = ($count) ? 'COUNT( DISTINCT m.id) as count' : 'DISTINCT( m.id ) as id';
 
       // get all the mailings that are in this subset of groups
       $query = "
-SELECT    $selectClause
+SELECT    DISTINCT( m.id ) as id
   FROM    civicrm_mailing m
 LEFT JOIN civicrm_mailing_group g ON g.mailing_id   = m.id
  WHERE ( ( g.entity_table like 'civicrm_group%' AND g.entity_id IN ( $groupIDs ) )
@@ -2233,6 +2246,9 @@ LEFT JOIN civicrm_mailing_group g ON g.mailing_id   = m.id
     }
 
     if ($rowCount) {
+      $offset = CRM_Utils_Type::escape($offset, 'Int');
+      $rowCount = CRM_Utils_Type::escape($rowCount, 'Int');
+
       $query .= " LIMIT $offset, $rowCount ";
     }
 
@@ -2293,6 +2309,8 @@ LEFT JOIN civicrm_mailing_group g ON g.mailing_id   = m.id
       CRM_Core_Error::fatal();
     }
 
+    CRM_Utils_Hook::pre('delete', 'Mailing', $id, CRM_Core_DAO::$_nullArray);
+
     // delete all file attachments
     CRM_Core_BAO_File::deleteEntityFile('civicrm_mailing',
       $id
@@ -2303,6 +2321,8 @@ LEFT JOIN civicrm_mailing_group g ON g.mailing_id   = m.id
     $dao->delete();
 
     CRM_Core_Session::setStatus(ts('Selected mailing has been deleted.'), ts('Deleted'), 'success');
+
+    CRM_Utils_Hook::post('delete', 'Mailing', $id, $dao);
   }
 
   /**
@@ -2362,7 +2382,7 @@ LEFT JOIN civicrm_mailing_group g ON g.mailing_id   = m.id
    *
    * @param   $form
    *
-   * @return None
+   * @return void
    * @access public
    */
   public static function commonCompose(&$form) {
@@ -2415,7 +2435,7 @@ LEFT JOIN civicrm_mailing_group g ON g.mailing_id   = m.id
     );
 
 
-    $form->_templates = CRM_Core_BAO_MessageTemplates::getMessageTemplates(FALSE);
+    $form->_templates = CRM_Core_BAO_MessageTemplate::getMessageTemplates(FALSE);
     if (!empty($form->_templates)) {
       $form->assign('templates', TRUE);
       $form->add('select', 'template', ts('Use Template'),
@@ -2460,7 +2480,7 @@ LEFT JOIN civicrm_mailing_group g ON g.mailing_id   = m.id
    *
    * @param   $form
    *
-   * @return None
+   * @return void
    * @access public
    */
   public static function commonLetterCompose(&$form) {
@@ -2469,9 +2489,13 @@ LEFT JOIN civicrm_mailing_group g ON g.mailing_id   = m.id
     if (CRM_Utils_System::getClassName($form) == 'CRM_Mailing_Form_Upload') {
       $tokens = array_merge(CRM_Core_SelectValues::mailingTokens(), $tokens);
     }
-
+    //@todo move this fn onto the form
     if (CRM_Utils_System::getClassName($form) == 'CRM_Contribute_Form_Task_PDFLetter') {
       $tokens = array_merge(CRM_Core_SelectValues::contributionTokens(), $tokens);
+    }
+
+    if(method_exists($form, 'listTokens')) {
+      $tokens = array_merge($form->listTokens(), $tokens);
     }
 
     //sorted in ascending order tokens by ignoring word case
@@ -2488,7 +2512,7 @@ LEFT JOIN civicrm_mailing_group g ON g.mailing_id   = m.id
       )
     );
 
-    $form->_templates = CRM_Core_BAO_MessageTemplates::getMessageTemplates(FALSE);
+    $form->_templates = CRM_Core_BAO_MessageTemplate::getMessageTemplates(FALSE);
     if (!empty($form->_templates)) {
       $form->assign('templates', TRUE);
       $form->add('select', 'template', ts('Select Template'),
@@ -2630,17 +2654,17 @@ WHERE  civicrm_mailing_job.id = %1
 
   static function processQueue($mode = NULL) {
     $config = &CRM_Core_Config::singleton();
- //   CRM_Core_Error::debug_log_message("Beginning processQueue run: {$config->mailerJobsMax}, {$config->mailerJobSize}");
+    //   CRM_Core_Error::debug_log_message("Beginning processQueue run: {$config->mailerJobsMax}, {$config->mailerJobSize}");
 
     if ($mode == NULL && CRM_Core_BAO_MailSettings::defaultDomain() == "EXAMPLE.ORG") {
-      CRM_Core_Error::fatal(ts('The <a href="%1">default mailbox</a> has not been configured. You will find <a href="%2">more info in the online user and administrator guide</a>', array(1 => CRM_Utils_System::url('civicrm/admin/mailSettings', 'reset=1'), 2 => "http://book.civicrm.org/user/initial-set-up/email-system-configuration")));
+      CRM_Core_Error::fatal(ts('The <a href="%1">default mailbox</a> has not been configured. You will find <a href="%2">more info in the online user and administrator guide</a>', array(1 => CRM_Utils_System::url('civicrm/admin/mailSettings', 'reset=1'), 2 => "http://book.civicrm.org/user/advanced-configuration/email-system-configuration/")));
     }
 
     // check if we are enforcing number of parallel cron jobs
     // CRM-8460
     $gotCronLock = FALSE;
-    if ($config->mailerJobsMax && $config->mailerJobsMax > 1) {
 
+    if (property_exists($config, 'mailerJobsMax') && $config->mailerJobsMax && $config->mailerJobsMax > 1) {
       $lockArray = range(1, $config->mailerJobsMax);
       shuffle($lockArray);
 
@@ -2667,7 +2691,8 @@ WHERE  civicrm_mailing_job.id = %1
     // load bootstrap to call hooks
 
     // Split up the parent jobs into multiple child jobs
-    CRM_Mailing_BAO_MailingJob::runJobs_pre($config->mailerJobSize, $mode);
+    $mailerJobSize = (property_exists($config, 'mailerJobSize')) ? $config->mailerJobSize : NULL;
+    CRM_Mailing_BAO_MailingJob::runJobs_pre($mailerJobSize, $mode);
     CRM_Mailing_BAO_MailingJob::runJobs(NULL, $mode);
     CRM_Mailing_BAO_MailingJob::runJobs_post($mode);
 
@@ -2680,7 +2705,7 @@ WHERE  civicrm_mailing_job.id = %1
     return TRUE;
   }
 
-  private function addMultipleEmails($mailingID) {
+  private static function addMultipleEmails($mailingID) {
     $sql = "
 INSERT INTO civicrm_mailing_recipients
     (mailing_id, email_id, contact_id)
@@ -2784,19 +2809,31 @@ AND        m.id = %1
         CRM_Core_Action::VIEW => array(
           'name' => ts('View'),
           'url' => 'civicrm/mailing/view',
-          'qs' => "reset=1&id={$values['mailing_id']}",
+          'qs' => "reset=1&id=%%mid%%",
           'title' => ts('View Mailing'),
           'class' => 'crm-mailing-view',
         ),
         CRM_Core_Action::BROWSE => array(
           'name' => ts('Mailing Report'),
           'url' => 'civicrm/mailing/report',
-          'qs' => "mid={$values['mailing_id']}&reset=1&cid={$params['contact_id']}&context=mailing",
+          'qs' => "mid=%%mid%%&reset=1&cid=%%cid%%&context=mailing",
           'title' => ts('View Mailing Report'),
         )
       );
 
-      $contactMailings[$mailingId]['links'] = CRM_Core_Action::formLink($actionLinks);
+      $contactMailings[$mailingId]['links'] = CRM_Core_Action::formLink(
+        $actionLinks,
+        null,
+        array(
+          'mid' => $values['mailing_id'],
+          'cid' => $params['contact_id'],
+        ),
+        ts('more'),
+        FALSE,
+        'mailing.contact.action',
+        'Mailing',
+        $values['mailing_id']
+      );
     }
 
     return $contactMailings;

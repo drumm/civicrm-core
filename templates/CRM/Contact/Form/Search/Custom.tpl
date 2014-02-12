@@ -1,6 +1,6 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -118,12 +118,6 @@
         </table>
         {/strip}
 
-        <script type="text/javascript">
-        {* this function is called to change the color of selected row(s) *}
-        var fname = "{$form.formName}";
-        on_load_init_checkboxes(fname);
-        </script>
-
         {include file="CRM/common/pager.tpl" location="bottom"}
 
         </p>
@@ -171,13 +165,12 @@ function toggleContactSelection( name, qfKey, selection ){
     cj.post( Url, {  qfKey: qfKey , variableType: 'multiple' , action: 'unselect' } );
     {/literal}
     {foreach from=$rows item=row}{literal}
-      cj("#{/literal}{$row.checkbox}{literal}").removeAttr('checked');{/literal}
+      cj("#{/literal}{$row.checkbox}{literal}").prop('checked', false);{/literal}
     {/foreach}
     {literal}
-    cj("#toggleSelect").removeAttr('checked');
-    var formName = "{/literal}{$form.formName}{literal}";
-    on_load_init_checkboxes(formName);
+    cj("#toggleSelect").prop('checked', false);
   }
+  return false;
 }
 </script>
 

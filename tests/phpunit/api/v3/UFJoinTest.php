@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -42,7 +42,7 @@ class api_v3_UFJoinTest extends CiviUnitTestCase {
   protected $_ufFieldId;
   protected $_contactId = 69;
   protected $_apiversion;
-  public $_eNoticeCompliant = TRUE;
+
   protected function setUp() {
     parent::setUp();
     //  Truncate the tables

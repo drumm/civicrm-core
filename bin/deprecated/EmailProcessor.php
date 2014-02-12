@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -103,7 +103,7 @@ else {
 
   // check if the script is being used for civimail processing or email to
   // activity processing.
-  $isCiviMail = CRM_Utils_Array::value('emailtoactivity', $_REQUEST) ? FALSE : TRUE;
+  $isCiviMail = !empty($_REQUEST['emailtoactivity']) ? FALSE : TRUE;
   CRM_Utils_Mail_EmailProcessor::process($isCiviMail);
 
   $lock->release();

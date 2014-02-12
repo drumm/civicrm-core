@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -97,8 +97,7 @@ class CRM_Core_SelectValues {
   static function &contactType() {
     static $contactType = NULL;
     if (!$contactType) {
-      $contactType = array('' => ts('- any contact type -'));
-      $contactType = $contactType + CRM_Contact_BAO_ContactType::basicTypePairs();
+      $contactType = CRM_Contact_BAO_ContactType::basicTypePairs();
     }
     return $contactType;
   }
@@ -248,7 +247,6 @@ class CRM_Core_SelectValues {
         'Campaign' => ts('Campaigns'),
       );
       $contactTypes = self::contactType();
-      unset($contactTypes['']);
       $contactTypes       = !empty($contactTypes) ? array('Contact' => 'Contacts') + $contactTypes : array();
       $extendObjs         = CRM_Core_OptionGroup::values('cg_extend_objects');
       $customGroupExtends = array_merge($contactTypes, $customGroupExtends, $extendObjs);
@@ -365,7 +363,7 @@ class CRM_Core_SelectValues {
         $date['emptyOptionValue'] = '';
       }
 
-      if (!CRM_Utils_Array::value('format', $date)) {
+      if (empty($date['format'])) {
         $date['format'] = 'M d';
       }
     }
@@ -591,6 +589,7 @@ class CRM_Core_SelectValues {
         '{event.fee_amount}' => ts('Event Fees'),
         '{event.info_url}' => ts('Event Info URL'),
         '{event.registration_url}' => ts('Event Registration URL'),
+        '{event.balance}' => ts('Event Balance')
       );
     }
     return $tokens;
@@ -661,17 +660,20 @@ class CRM_Core_SelectValues {
       $customFields        = CRM_Core_BAO_CustomField::getFields('Individual');
       $customFieldsAddress = CRM_Core_BAO_CustomField::getFields('Address');
       $customFields        = $customFields + $customFieldsAddress;
+      $legacyTokenNames = array_flip(CRM_Utils_Token::legacyContactTokens());
 
-      foreach ($values as $key => $val) {
+      foreach ($values as $val) {
         if (in_array($val, $skipTokens)) {
           continue;
         }
         //keys for $tokens should be constant. $token Values are changed for Custom Fields. CRM-3734
         if ($customFieldId = CRM_Core_BAO_CustomField::getKeyID($val)) {
-          $tokens["{contact.$val}"] = CRM_Utils_Array::value($customFieldId, $customFields) ? $customFields[$customFieldId]['label'] . " :: " . $customFields[$customFieldId]['groupTitle'] : '';
+          $tokens["{contact.$val}"] = !empty($customFields[$customFieldId]) ? $customFields[$customFieldId]['label'] . " :: " . $customFields[$customFieldId]['groupTitle'] : '';
         }
         else {
-          $tokens["{contact.$val}"] = $exportFields[$val]['title'];
+          // Support legacy token names
+          $tokenName = CRM_Utils_Array::value($val, $legacyTokenNames, $val);
+          $tokens["{contact.$tokenName}"] = $exportFields[$val]['title'];
         }
       }
 
@@ -725,7 +727,7 @@ class CRM_Core_SelectValues {
         }
         //keys for $tokens should be constant. $token Values are changed for Custom Fields. CRM-3734
         if ($customFieldId = CRM_Core_BAO_CustomField::getKeyID($val)) {
-          $tokens["{participant.$val}"] = CRM_Utils_Array::value($customFieldId, $customFields) ? $customFields[$customFieldId]['label'] . " :: " . $customFields[$customFieldId]['groupTitle'] : '';
+          $tokens["{participant.$val}"] = !empty($customFields[$customFieldId]) ? $customFields[$customFieldId]['label'] . " :: " . $customFields[$customFieldId]['groupTitle'] : '';
         }
         else {
           $tokens["{participant.$val}"] = $exportFields[$val]['title'];
@@ -863,6 +865,21 @@ class CRM_Core_SelectValues {
       );
     }
     return $barcodeTypes;
+  }
+
+  /**
+   * dedupe rule types
+   */
+  static function getDedupeRuleTypes() {
+    static $dedupeRuleTypes = NULL;
+    if (!$dedupeRuleTypes) {
+      $dedupeRuleTypes = array(
+        'Unsupervised' => ts('Unsupervised'),
+        'Supervised' => ts('Supervised'),
+        'General' => ts('General'),
+      );
+    }
+    return $dedupeRuleTypes;
   }
 }
 

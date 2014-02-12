@@ -1,6 +1,6 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -52,7 +52,7 @@
 <script type="text/javascript">
   function showHideSharedAddress( blockNo, showSelect ) {
     // based on checkbox, show or hide
-    if ( cj( '#address\\[' + blockNo + '\\]\\[use_shared_address\\]' ).attr( 'checked') ) {
+    if ( cj( '#address\\[' + blockNo + '\\]\\[use_shared_address\\]' ).prop('checked') ) {
       if ( showSelect && cj( '#shared-address-display-' + blockNo ).length == 0 ) {
         cj( '#shared-address-' + blockNo ).show( );
       }
@@ -98,7 +98,7 @@ cj( function( ) {
       var addressHTML = '';
       var postUrl = {/literal}"{crmURL p='civicrm/ajax/inline' h=0}"{literal};
 
-      addCiviOverlay('div.crm-address_' + blockNo);
+      $('div.crm-address_' + blockNo).block();
 
       cj.post( postUrl, {
         'contact_id': sharedContactId,
@@ -138,7 +138,7 @@ cj( function( ) {
               cj( '#shared-address-' + blockNo ).append( '<tr class="shared-address-list"><td></td><td>' + helpText + '</td></tr>');
             }
 
-            removeCiviOverlay('div.crm-address_' + blockNo);
+            cj('div.crm-address_' + blockNo).unblock();
           }
         },'json');
     });

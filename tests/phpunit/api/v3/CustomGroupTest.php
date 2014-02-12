@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -39,7 +39,7 @@ class api_v3_CustomGroupTest extends CiviUnitTestCase {
   protected $_apiversion = 3;
   protected $_entity;
   protected $_params;
-  public $_eNoticeCompliant = TRUE;
+
   public $DBResetRequired = TRUE;
 
   function get_info() {

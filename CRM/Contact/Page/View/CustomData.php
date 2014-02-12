@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -87,7 +87,7 @@ class CRM_Contact_Page_View_CustomData extends CRM_Core_Page {
    *
    * @param object $page - the view page which created this one
    *
-   * @return none
+   * @return void
    * @static
    *
    */

@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -254,10 +254,7 @@ SELECT module
     if (($this->_multiRecord & CRM_Core_Action::DELETE) && $this->_recordExists) {
       $this->_deleteButtonName = $this->getButtonName('upload', 'delete');
 
-      $this->addElement('submit',
-        $this->_deleteButtonName,
-        ts('Delete')
-      );
+      $this->addElement('submit', $this->_deleteButtonName, ts('Delete'));
 
       $buttons[] = array(
         'type' => 'cancel',
@@ -310,6 +307,11 @@ SELECT module
 
     // this is special case when we create contact using Dialog box
     if ($this->_context == 'dialog') {
+      //replace the session stack for redirecting user to contact summary if new contact is created.
+      $contactViewURL = CRM_Utils_System::url('civicrm/contact/view', "reset=1&cid={$this->_id}", FALSE, NULL, FALSE);
+      $session = CRM_Core_Session::singleton();
+      $session->replaceUserContext($contactViewURL);
+
       $displayName = CRM_Core_DAO::getFieldValue('CRM_Contact_DAO_Contact', $this->_id, 'display_name');
       $sortName = CRM_Core_DAO::getFieldValue('CRM_Contact_DAO_Contact', $this->_id, 'sort_name');
       $returnArray = array(
@@ -324,7 +326,7 @@ SELECT module
     }
 
     //for delete record handling
-    if (!CRM_Utils_Array::value($this->_deleteButtonName, $_POST)) {
+    if (empty($_POST[$this->_deleteButtonName])) {
       CRM_Core_Session::setStatus(ts('Your information has been saved.'), ts('Thank you.'), 'success');
     }
 
@@ -386,9 +388,7 @@ SELECT module
   function validate() {
     $errors = parent::validate();
 
-    if (!$errors &&
-      CRM_Utils_Array::value('errorURL', $_POST)
-    ) {
+    if (!$errors && !empty($_POST['errorURL'])) {
       $message = NULL;
       foreach ($this->_errors as $name => $mess) {
         $message .= $mess;

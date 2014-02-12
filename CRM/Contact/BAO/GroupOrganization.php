@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -59,6 +59,9 @@ class CRM_Contact_BAO_GroupOrganization extends CRM_Contact_DAO_GroupOrganizatio
     }
     $groupOrganization = new CRM_Contact_DAO_GroupOrganization();
     $groupOrganization->copyValues($formatedValues);
+    // we have ensured we have group_id & organization_id so we can do a find knowing that
+    // this can only find a matching record
+    $groupOrganization->find(TRUE);
     $groupOrganization->save();
     return $groupOrganization;
   }
@@ -74,15 +77,15 @@ class CRM_Contact_BAO_GroupOrganization extends CRM_Contact_DAO_GroupOrganizatio
    * @static
    */
   static function formatValues(&$params, &$formatedValues) {
-    if (CRM_Utils_Array::value('group_organization', $params)) {
+    if (!empty($params['group_organization'])) {
       $formatedValues['id'] = $params['group_organization'];
     }
 
-    if (CRM_Utils_Array::value('group_id', $params)) {
+    if (!empty($params['group_id'])) {
       $formatedValues['group_id'] = $params['group_id'];
     }
 
-    if (CRM_Utils_Array::value('organization_id', $params)) {
+    if (!empty($params['organization_id'])) {
       $formatedValues['organization_id'] = $params['organization_id'];
     }
   }
@@ -98,9 +101,7 @@ class CRM_Contact_BAO_GroupOrganization extends CRM_Contact_DAO_GroupOrganizatio
    */
   static function dataExists($params) {
     // return if no data present
-    if (CRM_Utils_Array::value('organization_id', $params) &&
-      CRM_Utils_Array::value('group_id', $params)
-    ) {
+    if (!empty($params['organization_id']) && !empty($params['group_id'])) {
       return TRUE;
     }
     return FALSE;

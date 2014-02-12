@@ -1,6 +1,6 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -44,6 +44,9 @@
       <td>
          {$form.relation_status.label}<br />
          {$form.relation_status.html}
+         </p>
+         {$form.relation_permission.label}<br />
+         {$form.relation_permission.html}
       </td>
       <td>
         {$form.relation_target_group.label} {help id="id-relationship-target-group" file="CRM/Contact/Form/Search/Advanced.hlp"}<br />
@@ -70,15 +73,4 @@
       </tr>
     {/if}
   </table>
-  {literal}
-    <script type="text/javascript">
-      cj("#relation_target_group").crmasmSelect({
-          addItemTarget: 'bottom',
-          animate: false,
-          highlight: true,
-          sortable: true,
-          respectParents: true
-      });
-    </script>
-  {/literal}
 </div>

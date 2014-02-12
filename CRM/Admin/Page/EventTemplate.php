@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                               |
+ | CiviCRM version 4.4                                               |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -116,14 +116,21 @@ class CRM_Admin_Page_EventTemplate extends CRM_Core_Page_Basic {
       }
 
       //get event type.
-      $allEventTemplates[$eventTemplate->id]['event_type'] = $eventTypes[$eventTemplate->event_type_id];
+      if (isset($eventTypes[$eventTemplate->event_type_id])) {
+         $allEventTemplates[$eventTemplate->id]['event_type'] = $eventTypes[$eventTemplate->event_type_id];
+      }
 
       //form all action links
       $action = array_sum(array_keys($this->links()));
 
       //add action links.
       $allEventTemplates[$eventTemplate->id]['action'] = CRM_Core_Action::formLink(self::links(), $action,
-        array('id' => $eventTemplate->id)
+        array('id' => $eventTemplate->id),
+        ts('more'),
+        FALSE,
+        'eventTemplate.manage.action',
+        'Event',
+        $eventTemplate->id
       );
     }
     $this->assign('rows', $allEventTemplates);

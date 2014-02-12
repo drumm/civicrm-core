@@ -1,6 +1,6 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -108,8 +108,8 @@ CRM.buildCustomData = function( type, subType, subName, cgCount, groupID, isMult
           cj('textarea', this).each(function() {
             cj(this).text(cj(this).val());
           });
-          cj('option:selected', this).attr('selected', 'selected');
-          cj('option:not(:selected)', this).removeAttr('selected');
+          cj('option:selected', this).prop('selected', true);
+          cj('option:not(:selected)', this).prop('selected', false);
           storage[id] = cj(this).detach();
         }
       });

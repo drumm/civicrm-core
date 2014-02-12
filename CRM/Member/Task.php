@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -69,31 +69,48 @@ class CRM_Member_Task {
   static function &tasks() {
     if (!(self::$_tasks)) {
       self::$_tasks = array(
-        1 => array('title' => ts('Delete Members'),
+        1 => array(
+          'title' => ts('Delete Members'),
           'class' => 'CRM_Member_Form_Task_Delete',
           'result' => FALSE,
         ),
-        2 => array('title' => ts('Print Memberships'),
+        2 => array(
+          'title' => ts('Print Selected Rows'),
           'class' => 'CRM_Member_Form_Task_Print',
           'result' => FALSE,
         ),
-        3 => array('title' => ts('Export Members'),
+        3 => array(
+          'title' => ts('Export Members'),
           'class' => array(
             'CRM_Export_Form_Select',
             'CRM_Export_Form_Map',
           ),
           'result' => FALSE,
         ),
-        4 => array('title' => ts('Send Email to Contacts'),
+        4 => array(
+          'title' => ts('Send Email to Contacts'),
           'class' => 'CRM_Member_Form_Task_Email',
           'result' => TRUE,
         ),
-        5 => array('title' => ts('Batch Update Members Via Profile'),
+        5 => array(
+          'title' => ts('Batch Update Members Via Profile'),
           'class' => array(
             'CRM_Member_Form_Task_PickProfile',
             'CRM_Member_Form_Task_Batch',
           ),
           'result' => TRUE,
+        ),
+        6 => array(
+          'title' => ts('Mailing Labels'),
+          'class' => array(
+            'CRM_Member_Form_Task_Label',
+          ),
+          'result' => TRUE,
+        ),
+        7 => array(
+          'title' => ts('Print PDF Letters for Memberships'),
+          'class' => 'CRM_Member_Form_Task_PDFLetter',
+          'result' => FALSE,
         ),
       );
 
@@ -119,10 +136,7 @@ class CRM_Member_Task {
     self::tasks();
     $titles = array();
     foreach (self::$_tasks as $id => $value) {
-      // skip Print Membership task
-      if ($id != 2) {
-        $titles[$id] = $value['title'];
-      }
+      $titles[$id] = $value['title'];
     }
     return $titles;
   }

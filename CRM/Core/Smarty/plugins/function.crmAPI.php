@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -59,6 +59,10 @@ function smarty_function_crmAPI($params, &$smarty) {
   if ($result === FALSE) {
     $smarty->trigger_error("Unkown error");
     return;
+  }
+
+  if (!empty($result['is_error'])) {
+    $smarty->trigger_error("{crmAPI} ".$result["error_message"]);
   }
 
   if (!array_key_exists('var', $params)) {

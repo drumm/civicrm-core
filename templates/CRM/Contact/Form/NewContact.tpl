@@ -1,6 +1,6 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -24,10 +24,12 @@
  +--------------------------------------------------------------------+
 *}
 {* template for adding form elements for selecting existing or creating new contact*}
-{if !in_array($context, array('search','advanced', 'builder')) }
+{if !in_array($context, array('search','advanced', 'builder')) || $parent eq 'activity'}
   {assign var='fldName' value=$prefix|cat:'contact'}
   {assign var='profSelect' value=$prefix|cat:'profiles'}
-
+	{* Focus on select contact element unless focus=false is passed in. *}
+	{assign var='focus' value=$focus|default:true}
+	
   {if $noLabel}
     <div>
       {if !$skipBreak}
@@ -112,7 +114,10 @@
     // setdefaults incase of formRule
     {/literal}
     {if $selectedContacts}
-      {literal} var prePopulateData = cj.ajax({ url: contactUrl + "&cid={/literal}{$selectedContacts}{literal}", async: false }).responseText;{/literal}
+      {literal}
+        var prePopulateData = cj.ajax({ url: contactUrl + "&cid={/literal}{$selectedContacts}{literal}", async: false }).responseText;
+        prePopulateData = cj.parseJSON(prePopulateData);
+      {/literal}
     {/if}
     {literal}
 
@@ -137,7 +142,7 @@
         eval("{$newContactCallback}");
       {/if}
       {literal}
-    }).focus( );
+    }){/literal}{if $focus}.focus( ){/if}{literal};
 
     cj( contactElement ).click( function( ) {
       cj( contactHiddenElement ).val('');

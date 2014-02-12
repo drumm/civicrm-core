@@ -1,6 +1,6 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -24,7 +24,7 @@
  +--------------------------------------------------------------------+
 *}
 {* This template is used for adding/editing/deleting offline Event Registrations *}
-{if $showFeeBlock }
+{if $showFeeBlock}
   {if $priceSet}
   <div id='validate_pricefield' class='messages crm-error hiddenElement'></div>
     {literal}
@@ -97,7 +97,7 @@
 
           case 'checkbox':
             var checkBoxValue = eleIdpart[1].split(']');
-            if ( cj(obj).attr("checked") == true &&
+            if ( cj(obj).prop("checked") == true &&
               fieldOptionsFull[eleId] &&
               fieldOptionsFull[eleId][checkBoxValue[0]]) {
               showError = true;
@@ -127,12 +127,45 @@
         }
       }
     }
+
+  // change the status to default 'partially paid' for partial payments
+  var feeAmount;
+  var userModifiedAmount;
+
+  cj('#total_amount')
+   .focus(
+     function() {
+       feeAmount = cj(this).val();
+       feeAmount = parseInt(feeAmount);
+     }
+   )
+   .change(
+    function() {
+      userModifiedAmount = cj(this).val();
+      userModifiedAmount = parseInt(userModifiedAmount);
+      if (userModifiedAmount < feeAmount) {
+        cj('#status_id').val(CRM.partiallyPaidStatusId);
+      }
+    }
+  );
+
+  cj('#Participant').submit(
+    function(e) {
+      var userSubmittedStatus = cj('#status_id').val();
+      var statusLabel = cj('#status_id option:selected').text();
+      if (userModifiedAmount < feeAmount && userSubmittedStatus != CRM.partiallyPaidStatusId) {
+        var result = confirm('Payment amount is less than the amount owed. Expected participant status is \'Partially paid\'. Are you sure you want to set the participant status to ' + statusLabel + '? Click OK to continue, Cancel to change your entries.');
+        if (result == false) {
+          e.preventDefault();
+        }
+      }
+    }
+  );
   </script>
   {/literal}
   {/if}
   {include file="CRM/Event/Form/EventFees.tpl"}
-
-{elseif $cdType }
+{elseif $cdType}
   {include file="CRM/Custom/Form/CustomData.tpl"}
 {else}
   {if $participantMode == 'test' }
@@ -216,9 +249,8 @@
           {/if}
           <tr class="crm-participant-form-block-event_id">
             <td class="label">{$form.event_id.label}</td><td class="view-value bold">{$form.event_id.html}&nbsp;
-            {if $action eq 1 && !$past }
-              <br /><a href="#" onclick="buildSelect('event_id'); return false;"
-                       id='past-event'>&raquo; {ts}Include past event(s) in this select list.{/ts}</a>
+            {if $action eq 1}<span id='past-event-section'>
+              <br />&raquo; <span id="showing-event-info"></span>
             {/if}
             {if $is_test}
               {ts}(test){/ts}
@@ -255,7 +287,15 @@
             <span class="description">{ts}Source for this registration (if applicable).{/ts}</span></td>
           </tr>
         </table>
-
+       {if $participantId}
+        <table class='form-layout'>
+          <tr>
+            <td class='label'>{ts}Fees{/ts}</td>
+            {* this is where the payment info is shown using CRM/Contribute/Page/PaymentInfo.tpl tpl*}
+            <td id='payment-info'></td>
+          </tr>
+         </table>
+        {/if}
       {* Fee block (EventFees.tpl) is injected here when an event is selected. *}
         <div id="feeBlock"></div>
         <fieldset>
@@ -282,22 +322,43 @@
     </div>
   </div>
   {if $action eq 1 or $action eq 2}
+    {if $participantId}
+      {include file="CRM/Contribute/Page/PaymentInfo.tpl" show='event-payment'}
+    {/if}
     {literal}
     <script type="text/javascript">
     // event select
-    function buildSelect( selectID ) {
+    function buildSelect( selectID, listallVal ) {
       var elementID = '#' + selectID;
       cj( elementID ).html('');
       var postUrl = "{/literal}{crmURL p='civicrm/ajax/eventlist' h=0}{literal}";
-      cj.post( postUrl, null, function ( response ) {
+      cj.post( postUrl, {listall:listallVal}, function ( response ) {
         response = eval( response );
         for (i = 0; i < response.length; i++) {
           cj( elementID ).get(0).add(new Option(response[i].name, response[i].value), document.all ? i : null);
         }
-        cj('#past-event').hide( );
-        cj('input[name="past_event"]').val(1);
+        getShowEventInfo(listallVal);
+        cj('input[name="past_event"]').val(listallVal);
         cj("#feeBlock").html( '' );
       });
+    }
+
+    {/literal}
+    {if $action eq 1}getShowEventInfo({$past});{/if}
+    {literal}
+
+    function getShowEventInfo (listallVal) {
+      switch(listallVal) {
+        case 1:
+          cj('#showing-event-info').html({/literal}'{ts}Showing all events: show{/ts}'{literal}+' <a href="#" onclick="buildSelect(\'event_id\', 0); return false;">'+{/literal}'{ts}current and future{/ts}'{literal}+'</a> | <a href="#" onclick="buildSelect(\'event_id\', 2); return false;">'+{/literal}'{ts}past three months{/ts}'{literal}+'</a>');
+          break;
+        case 2:
+          cj('#showing-event-info').html({/literal}'{ts}Showing events since three months ago: show{/ts}'{literal}+' <a href="#" onclick="buildSelect(\'event_id\', 0); return false;">'+{/literal}'{ts}current and future{/ts}'{literal}+'</a> | <a href="#" onclick="buildSelect(\'event_id\', 1); return false;">'+{/literal}'{ts}all{/ts}'{literal}+'</a>');
+          break;
+        default:
+          cj('#showing-event-info').html({/literal}'{ts}Showing current and future events: show{/ts}'{literal}+' <a href="#" onclick="buildSelect(\'event_id\', 2); return false;">'+{/literal}'{ts}past three months{/ts}'{literal}+'</a> | <a href="#" onclick="buildSelect(\'event_id\', 1); return false;">'+{/literal}'{ts}all{/ts}'{literal}+'</a>');
+          break;
+      }
     }
     {/literal}
 
@@ -360,11 +421,11 @@
       });
 
       cj("#feeBlock").ajaxStart(function(){
-        cj(".disable-buttons input").attr('disabled', true);
+        cj(".disable-buttons input").prop('disabled', true);
       });
 
       cj("#feeBlock").ajaxStop(function(){
-        cj(".disable-buttons input").attr('disabled', false);
+        cj(".disable-buttons input").prop('disabled', false);
       });
 
       //show event real full as well as waiting list message.
@@ -570,11 +631,11 @@
     notificationStatusIds = notificationStatusIds.split(',');
     if (cj.inArray(cj('select#status_id option:selected').val(), notificationStatusIds) > -1) {
       cj("#notify").show();
-      cj("#is_notify").attr('checked', true);
+      cj("#is_notify").prop('checked', true);
     }
     else {
       cj("#notify").hide();
-      cj("#is_notify").removeAttr('checked');
+      cj("#is_notify").prop('checked', false);
     }
   }
 

@@ -1,6 +1,6 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -38,9 +38,6 @@
     <div class="crm-submit-buttons">
     {include file="CRM/common/formButtons.tpl" location="top"}
     </div>
-
-    {* include overlay js *}
-    {include file="CRM/common/overlay.tpl"}
 
     <div class="crm-accordion-wrapper crm-contactDetails-accordion">
       <div class="crm-accordion-header">
@@ -239,13 +236,6 @@
       return true;
     });
     {/literal}{/if}{literal}
-
-    $("select#contact_sub_type").crmasmSelect({
-      addItemTarget: 'bottom',
-      animate: false,
-      highlight: true,
-      respectParents: true
-    });
   });
 
 </script>

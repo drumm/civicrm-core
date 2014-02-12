@@ -5,7 +5,7 @@
  * This class allows to consume the API, either from within a module that knows civicrm already:
  *
  * @code
- *   require_once('api/class/api.php');
+ *   require_once('api/class.api.php');
  *   $api = new civicrm_api3();
  * @endcode
  *
@@ -20,7 +20,9 @@
  * or to query a remote server via the rest api
  *
  * @code
- *   $api = new civicrm_api3 (array ('server' => 'http://example.org','api_key'=>'theusersecretkey','key'=>'thesitesecretkey'));
+ *   $api = new civicrm_api3 (array ('server' => 'http://example.org',
+ *                                   'api_key'=>'theusersecretkey',
+ *                                   'key'=>'thesitesecretkey'));
  * @endcode
  *
  * No matter how initialised and if civicrm is local or remote, you use the class the same way.
@@ -111,10 +113,10 @@ class civicrm_api3 {
     if (isset($config) && isset($config['conf_path'])) {
       define('CIVICRM_SETTINGS_PATH', $config['conf_path'] . '/civicrm.settings.php');
       require_once CIVICRM_SETTINGS_PATH;
-      require_once 'CRM/Core/Classloader.php';
+      require_once 'CRM/Core/ClassLoader.php';
       require_once 'api/api.php';
       require_once "api/v3/utils.php";
-      CRM_Core_Classloader::singleton()->register();
+      CRM_Core_ClassLoader::singleton()->register();
       $this->cfg = CRM_Core_Config::singleton();
       $this->init();
     }
@@ -173,18 +175,27 @@ class civicrm_api3 {
       if (curl_errno($ch)) {
         $res = new stdClass;
         $res->is_error = 1;
+        $res->error_message = curl_error($ch);
+        $res->level = "cURL";
         $res->error = array('cURL error' => curl_error($ch));
         return $res;
       }
       curl_close($ch);
-      return json_decode($result);
     }
     else {
       // Should be discouraged, because the API credentials and data
       // are submitted as GET data, increasing chance of exposure..
       $result = file_get_contents($query . '&' . $fields);
-      return json_decode($result);
     }
+    if (!$res = json_decode($result)) {
+      $res = new stdClass;
+      $res->is_error = 1;
+      $res->error_message = 'Unable to parse returned JSON';
+      $res->level = 'json_decode';
+      $res->error = array('Unable to parse returned JSON' => $result);
+      $res->row_result = $result;
+    }
+    return $res;
   }
 
   function call($entity, $action = 'Get', $params = array()) {

@@ -2,7 +2,7 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -59,14 +59,28 @@ class CRM_Report_Form_Contact_Summary extends CRM_Report_Form {
             'required' => TRUE,
             'no_repeat' => TRUE,
           ),
-      'first_name' => array('title' => ts('First Name'),
+          'first_name' => array(
+            'title' => ts('First Name'),
           ),
-      'last_name' => array('title' => ts('Last Name'),
+          'last_name' => array(
+            'title' => ts('Last Name'),
           ),
           'id' =>
           array(
             'no_display' => TRUE,
             'required' => TRUE,
+          ),
+          'contact_type' =>
+          array(
+            'title' => ts('Contact Type'),
+          ),
+          'contact_sub_type' =>
+          array(
+            'title' => ts('Contact SubType'),
+          ),
+          'birth_date' =>
+          array(
+            'title' => ts('Birth Date'),
           ),
         ),
         'filters' =>
@@ -80,6 +94,11 @@ class CRM_Report_Form_Contact_Summary extends CRM_Report_Form {
           'id' =>
           array('title' => ts('Contact ID'),
             'no_display' => TRUE,
+          ),
+          'birth_date' =>
+          array(
+            'title' => ts('Birth Date'),
+            'operatorType' => CRM_Report_Form::OP_DATE,
           ),
         ),
         'grouping' => 'contact-fields',
@@ -162,7 +181,13 @@ class CRM_Report_Form_Contact_Summary extends CRM_Report_Form {
       array(
         'dao' => 'CRM_Core_DAO_Phone',
         'fields' =>
-        array('phone' => NULL),
+        array(
+          'phone' => NULL,   
+          'phone_ext' =>
+          array(
+            'title' => ts('Phone Extension')
+          )
+        ),
         'grouping' => 'contact-fields',
       ),
       'civicrm_group' =>
@@ -197,9 +222,7 @@ class CRM_Report_Form_Contact_Summary extends CRM_Report_Form {
     foreach ($this->_columns as $tableName => $table) {
       if (array_key_exists('fields', $table)) {
         foreach ($table['fields'] as $fieldName => $field) {
-          if (CRM_Utils_Array::value('required', $field) ||
-            CRM_Utils_Array::value($fieldName, $this->_params['fields'])
-          ) {
+          if (!empty($field['required']) || !empty($this->_params['fields'][$fieldName])) {
             if ($tableName == 'civicrm_email') {
               $this->_emailField = TRUE;
             }

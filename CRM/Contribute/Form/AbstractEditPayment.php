@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -164,7 +164,7 @@ class CRM_Contribute_Form_AbstractEditPayment extends CRM_Core_Form {
     //Check if this is an online transaction (financial_trxn.payment_processor_id NOT NULL)
     $this->_online = FALSE;
     $fids = CRM_Core_BAO_FinancialTrxn::getFinancialTrxnId($id);
-    if (CRM_Utils_Array::value('financialTrxnId', $fids)) {
+    if (!empty($fids['financialTrxnId'])) {
       $this->_online = CRM_Core_DAO::getFieldValue('CRM_Financial_DAO_FinancialTrxn', $fids['financialTrxnId'], 'payment_processor_id');
     }
 
@@ -175,12 +175,6 @@ class CRM_Contribute_Form_AbstractEditPayment extends CRM_Core_Form {
 
     $this->assign('isOnline', $this->_online ? TRUE : FALSE);
 
-    //unset the honor type id:when delete the honor_contact_id
-    //and edit the contribution, honoree infomation pane open
-    //since honor_type_id is present
-    if (!CRM_Utils_Array::value('honor_contact_id', $values)) {
-      unset($values['honor_type_id']);
-    }
     //to get note id
     $daoNote = new CRM_Core_BAO_Note();
     $daoNote->entity_table = 'civicrm_contribution';
@@ -269,13 +263,16 @@ LEFT JOIN  civicrm_contribution on (civicrm_contribution.contact_id = civicrm_co
         elseif ($updatedStatusName == 'Expired') {
           $statusMsg .= "<br />" . ts("Membership for %1 has been Expired.", array(1 => $userDisplayName));
         }
-        elseif ($endDate = CRM_Utils_Array::value('membership_end_date', $updateResult)) {
-          $statusMsg .= "<br />" . ts("Membership for %1 has been updated. The membership End Date is %2.",
-            array(
-              1 => $userDisplayName,
-              2 => $endDate
-            )
-          );
+        else {
+          $endDate = CRM_Utils_Array::value('membership_end_date', $updateResult);
+          if ($endDate) {
+            $statusMsg .= "<br />" . ts("Membership for %1 has been updated. The membership End Date is %2.",
+              array(
+                1 => $userDisplayName,
+                2 => $endDate
+              )
+            );
+          }
         }
       }
 
@@ -354,7 +351,7 @@ LEFT JOIN  civicrm_contribution on (civicrm_contribution.contact_id = civicrm_co
    * @return void
    */
   public function assignBillingType() {
-    $locationTypes = CRM_Core_PseudoConstant::get('CRM_Core_DAO_Address', 'location_type_id');
+    $locationTypes = CRM_Core_PseudoConstant::get('CRM_Core_DAO_Address', 'location_type_id', array(), 'validate');
     $this->_bltID = array_search('Billing', $locationTypes);
     if (!$this->_bltID) {
       CRM_Core_Error::fatal(ts('Please set a location type of %1', array(1 => 'Billing')));

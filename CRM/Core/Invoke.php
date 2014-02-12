@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -246,7 +246,7 @@ class CRM_Core_Invoke {
       }
 
       // check if ssl is set
-      if (CRM_Utils_Array::value('is_ssl', $item)) {
+      if (!empty($item['is_ssl'])) {
         CRM_Utils_System::redirectToSSL();
       }
 
@@ -259,7 +259,7 @@ class CRM_Core_Invoke {
       }
 
       $pageArgs = NULL;
-      if (CRM_Utils_Array::value('page_arguments', $item)) {
+      if (!empty($item['page_arguments'])) {
         $pageArgs = CRM_Core_Menu::getArrayForPathArgs($item['page_arguments']);
       }
 
@@ -307,6 +307,7 @@ class CRM_Core_Invoke {
         $title = CRM_Utils_Array::value('title', $item);
         if (strstr($item['page_callback'], '_Page')) {
           $object = new $item['page_callback'] ($title, $mode );
+          $object->urlPath = explode('/', $_GET[$config->userFrameworkURLVar]);
         }
         elseif (strstr($item['page_callback'], '_Controller')) {
           $addSequence = 'false';
@@ -414,10 +415,6 @@ class CRM_Core_Invoke {
     }
 
     if ($secondArg == 'edit' || $secondArg == 'create') {
-      // set the userContext stack
-      $session = CRM_Core_Session::singleton();
-      $session->pushUserContext(CRM_Utils_System::url('civicrm/profile', 'reset=1'));
-
       $buttonType = CRM_Utils_Array::value('_qf_Edit_cancel', $_POST);
       // CRM-5849: we should actually check the button *type*, but we get the *value*, potentially translated;
       // we should keep both English and translated checks just to make sure we also handle untranslated Cancels
@@ -456,8 +453,13 @@ class CRM_Core_Invoke {
       }
     }
 
-    $page = new CRM_Profile_Page_Listings();
-    return $page->run();
+    if ($secondArg == 'view' || empty($secondArg)) {
+      $page = new CRM_Profile_Page_Listings();
+      return $page->run();
+    }
+
+    CRM_Utils_System::permissionDenied();
+    return;
   }
 
   /**
@@ -489,6 +491,9 @@ class CRM_Core_Invoke {
     // also cleanup module permissions
     $config->cleanupPermissions();
 
+    // also rebuild word replacement cache
+    CRM_Core_BAO_WordReplacement::rebuild();
+
     CRM_Core_BAO_Setting::updateSettingsFromMetaData();
     CRM_Core_Resources::singleton()->resetCacheCode();
 
@@ -499,7 +504,7 @@ class CRM_Core_Invoke {
     ) {
       CRM_Core_DAO::triggerRebuild();
     }
-
+    CRM_Core_DAO_AllCoreTables::reinitializeCache(TRUE);
     CRM_Core_ManagedEntities::singleton(TRUE)->reconcile();
   }
 }

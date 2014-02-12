@@ -2,7 +2,7 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -60,7 +60,7 @@ function civicrm_api3_contribution_create(&$params) {
       'amount' => $params['total_amount']));
   }
 
-  if (CRM_Utils_Array::value('id', $params) && CRM_Utils_Array::value('contribution_status_id', $params)) {
+  if (!empty($params['id']) && !empty($params['contribution_status_id'])) {
     $error = array();
     //throw error for invalid status change such as setting completed back to pending
     //@todo this sort of validation belongs in the BAO not the API - if it is not an OK
@@ -83,6 +83,7 @@ function _civicrm_api3_contribution_create_spec(&$params) {
   $params['contact_id']['api.required'] = 1;
   $params['total_amount']['api.required'] = 1;
   $params['payment_instrument_id']['api.aliases'] = array('payment_instrument');
+  $params['receive_date']['api.default'] = 'now';
   $params['payment_processor'] = array(
     'name' => 'payment_processor',
     'title' => 'Payment Processor ID',
@@ -122,6 +123,11 @@ function _civicrm_api3_contribution_create_spec(&$params) {
     'api.default' => 0,
     'description' => 'Do not add line items by default (if you wish to add your own)',
   );
+  $params['batch_id'] = array(
+    'title' => 'Batch',
+    'type' => 1,
+    'description' => 'Batch which relevant transactions should be added to',
+  );
 }
 
 /**
@@ -137,7 +143,7 @@ function _civicrm_api3_contribution_create_spec(&$params) {
  */
 function civicrm_api3_contribution_delete($params) {
 
-  $contributionID = CRM_Utils_Array::value('contribution_id', $params) ? $params['contribution_id'] : $params['id'];
+  $contributionID = !empty($params['contribution_id']) ? $params['contribution_id'] : $params['id'];
   if (CRM_Contribute_BAO_Contribution::deleteContribution($contributionID)) {
     return civicrm_api3_create_success(array($contributionID => 1));
   }
@@ -254,6 +260,18 @@ function _civicrm_api3_contribute_format_params($params, &$values, $create = FAL
 }
 
 /**
+ * Adjust Metadata for Transact action
+ *
+ * The metadata is used for setting defaults, documentation & validation
+ * @param array $params array or parameters determined by getfields
+ */
+function _civicrm_api3_contribution_transact_spec(&$params) {
+  // This function calls create, so should inherit create spec
+  _civicrm_api3_contribution_create_spec($params);
+  $params['receive_date']['api.default'] = 'now';
+}
+
+/**
  * Process a transaction and record it against the contact.
  *
  * @param  array   $params           (reference ) input parameters
@@ -264,40 +282,22 @@ function _civicrm_api3_contribute_format_params($params, &$values, $create = FAL
  *
  */
 function civicrm_api3_contribution_transact($params) {
-  $required = array('amount');
-  foreach ($required as $key) {
-    if (!isset($params[$key])) {
-      return civicrm_api3_create_error("Missing parameter $key: civicrm_contribute_transact() requires a parameter '$key'.");
-    }
-  }
-
-  // allow people to omit some values for convenience
-  // 'payment_processor_id' => NULL /* we could retrieve the default processor here, but only if it's missing to avoid an extra lookup */
-  $defaults = array(
-    'payment_processor_mode' => 'live',
-  );
-  $params = array_merge($defaults, $params);
-
-  // clean up / adjust some values which
-  if (!isset($params['total_amount'])) {
-    $params['total_amount'] = $params['amount'];
-  }
+  // Set some params specific to payment processing
+  $params['payment_processor_mode'] = empty($params['is_test']) ? 'live' : 'test';
+  $params['amount'] = $params['total_amount'];
   if (!isset($params['net_amount'])) {
     $params['net_amount'] = $params['amount'];
-  }
-  if (!isset($params['receive_date'])) {
-    $params['receive_date'] = date('Y-m-d');
   }
   if (!isset($params['invoiceID']) && isset($params['invoice_id'])) {
     $params['invoiceID'] = $params['invoice_id'];
   }
 
-  $paymentProcessor = CRM_Financial_BAO_PaymentProcessor::getPayment($params['payment_processor_id'], $params['payment_processor_mode']);
+  $paymentProcessor = CRM_Financial_BAO_PaymentProcessor::getPayment($params['payment_processor'], $params['payment_processor_mode']);
   if (civicrm_error($paymentProcessor)) {
     return $paymentProcessor;
   }
 
-  $payment = &CRM_Core_Payment::singleton($params['payment_processor_mode'], $paymentProcessor);
+  $payment = CRM_Core_Payment::singleton($params['payment_processor_mode'], $paymentProcessor);
   if (civicrm_error($payment)) {
     return $payment;
   }
@@ -309,7 +309,7 @@ function civicrm_api3_contribution_transact($params) {
 
   // but actually, $payment->doDirectPayment() doesn't return a
   // CRM_Core_Error by itself
-  if (get_class($transaction) == 'CRM_Core_Error') {
+  if (is_object($transaction) && get_class($transaction) == 'CRM_Core_Error') {
     $errs = $transaction->getErrors();
     if (!empty($errs)) {
       $last_error = array_shift($errs);
@@ -317,8 +317,7 @@ function civicrm_api3_contribution_transact($params) {
     }
   }
 
-  $contribution = civicrm_api('contribution', 'create', $params);
-  return $contribution['values'];
+  return civicrm_api('contribution', 'create', $params);
 }
 /**
  * Send a contribution confirmation (receipt or invoice)
@@ -343,7 +342,7 @@ function civicrm_api3_contribution_sendconfirmation($params) {
 }
 
 /**
- * Adjust Metadata for Create action
+ * Adjust Metadata for sendconfirmation action
  *
  * The metadata is used for setting defaults, documentation & validation
  * @param array $params array or parameters determined by getfields
@@ -355,8 +354,19 @@ function _civicrm_api3_contribution_sendconfirmation_spec(&$params) {
   );
   $params['receipt_from_email'] = array(
     'api.required' =>1,
-    'title' => 'From Email (required until someone provides a patch :-)',
-
+    'title' => 'From Email address (string) required until someone provides a patch :-)',
+  );
+  $params['receipt_from_name'] = array(
+    'title' => 'From Name (string)',
+  );
+  $params['cc_receipt'] = array(
+    'title' => 'CC Email address (string)',
+  );
+  $params['bcc_receipt'] = array(
+    'title' => 'BCC Email address (string)',
+  );
+  $params['receipt_text'] = array(
+    'title' => 'Message (string)',
   );
 }
 
@@ -401,7 +411,7 @@ function civicrm_api3_contribution_completetransaction(&$params) {
     $ipn = new CRM_Core_Payment_BaseIPN();
     $ipn->completeTransaction($input, $ids, $objects, $transaction);
   }
-  catch(Exception$e) {
+  catch(Exception $e) {
     throw new API_Exception('failed to load related objects' . $e->getMessage() . "\n" . $e->getTraceAsString());
   }
 }

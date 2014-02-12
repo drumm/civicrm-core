@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -191,7 +191,7 @@ class CRM_Friend_BAO_Friend extends CRM_Friend_DAO_Friend {
       );
       //if is_email_receipt is set then take receipt_from_email
       //as from_email
-      if (CRM_Utils_Array::value('is_email_receipt', $default) && CRM_Utils_Array::value('receipt_from_email', $default)) {
+      if (!empty($default['is_email_receipt']) && !empty($default['receipt_from_email'])) {
         $mailParams['email_from'] = $default['receipt_from_email'];
       }
 
@@ -211,7 +211,7 @@ class CRM_Friend_BAO_Friend extends CRM_Friend_DAO_Friend {
 
       //if is_email_confirm is set then take confirm_from_email
       //as from_email
-      if (CRM_Utils_Array::value('is_email_confirm', $default) && CRM_Utils_Array::value('confirm_from_email', $default)) {
+      if (!empty($default['is_email_confirm']) && !empty($default['confirm_from_email'])) {
         $mailParams['email_from'] = $default['confirm_from_email'];
       }
 
@@ -237,7 +237,7 @@ class CRM_Friend_BAO_Friend extends CRM_Friend_DAO_Friend {
    *
    * @param object $form form object
    *
-   * @return None
+   * @return void
    * @access public
    */
   static function buildFriendForm($form) {
@@ -294,14 +294,14 @@ class CRM_Friend_BAO_Friend extends CRM_Friend_DAO_Friend {
     }
 
     // use contact email, CRM-4963
-    if (!CRM_Utils_Array::value('email_from', $values)) {
+    if (empty($values['email_from'])) {
       $values['email_from'] = $email;
     }
 
     foreach ($values['email'] as $displayName => $emailTo) {
       if ($emailTo) {
         // FIXME: factor the below out of the foreach loop
-        CRM_Core_BAO_MessageTemplates::sendTemplate(
+        CRM_Core_BAO_MessageTemplate::sendTemplate(
           array(
             'groupName' => 'msg_tpl_workflow_friend',
             'valueName' => 'friend',

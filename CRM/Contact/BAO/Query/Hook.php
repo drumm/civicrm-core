@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -66,7 +66,7 @@ class CRM_Contact_BAO_Query_Hook {
   public function getSearchQueryObjects() {
     if ($this->_queryObjects === NULL) {
       $this->_queryObjects = array();
-      CRM_Utils_Hook::queryObjects($this->_queryObjects);
+      CRM_Utils_Hook::queryObjects($this->_queryObjects, 'Contact');
     }
     return $this->_queryObjects;
   }
@@ -78,6 +78,12 @@ class CRM_Contact_BAO_Query_Hook {
       $extFields = array_merge($extFields, $flds);
     }
     return $extFields;
+  }
+
+  public function alterSearchBuilderOptions(&$apiEntities, &$fieldOptions) {
+    foreach (self::getSearchQueryObjects() as $obj) {
+      $obj->alterSearchBuilderOptions($apiEntities, $fieldOptions);
+    }
   }
 
   public function alterSearchQuery(&$query, $fnName) {
@@ -103,6 +109,12 @@ class CRM_Contact_BAO_Query_Hook {
   public function registerAdvancedSearchPane(&$panes) {
     foreach (self::getSearchQueryObjects() as $obj) {
       $obj->registerAdvancedSearchPane($panes);
+    }
+  }
+
+  public function getPanesMapper(&$panes) {
+    foreach (self::getSearchQueryObjects() as $obj) {
+      $obj->getPanesMapper($panes);
     }
   }
 

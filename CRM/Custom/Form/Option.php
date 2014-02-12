@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -80,20 +80,24 @@ class CRM_Custom_Form_Option extends CRM_Core_Form {
 
     $this->_gid = CRM_Utils_Request::retrieve('gid', 'Positive', $this);
 
-    if ($isReserved = CRM_Core_DAO::getFieldValue('CRM_Core_DAO_CustomGroup', $this->_gid, 'is_reserved', 'id')) {
-      CRM_Core_Error::fatal("You cannot add or edit muliple choice options in a reserved custom field-set.");
-    }
     if (!isset($this->_gid) && $this->_fid) {
-      $this->_gid = CRM_Core_DAO::getFieldValue('CRM_Core_DAO_CustomField',
+      $this->_gid = CRM_Core_DAO::getFieldValue(
+        'CRM_Core_DAO_CustomField',
         $this->_fid,
         'custom_group_id'
       );
     }
+
     if ($this->_fid) {
-      $this->_optionGroupID = CRM_Core_DAO::getFieldValue('CRM_Core_DAO_CustomField',
+      $this->_optionGroupID = CRM_Core_DAO::getFieldValue(
+        'CRM_Core_DAO_CustomField',
         $this->_fid,
         'option_group_id'
       );
+    }
+
+    if ($isReserved = CRM_Core_DAO::getFieldValue('CRM_Core_DAO_CustomGroup', $this->_gid, 'is_reserved', 'id')) {
+      CRM_Core_Error::fatal("You cannot add or edit muliple choice options in a reserved custom field-set.");
     }
 
     $this->_id = CRM_Utils_Request::retrieve('id', 'Positive', $this);
@@ -121,7 +125,7 @@ class CRM_Custom_Form_Option extends CRM_Core_Form {
         || $fieldDefaults['html_type'] == 'Multi-Select'
         || $fieldDefaults['html_type'] == 'AdvMulti-Select'
       ) {
-        if (CRM_Utils_Array::value('default_value', $fieldDefaults)) {
+        if (!empty($fieldDefaults['default_value'])) {
           $defaultCheckValues = explode(CRM_Core_DAO::VALUE_SEPARATOR,
             substr($fieldDefaults['default_value'], 1, -1)
           );
@@ -158,6 +162,8 @@ class CRM_Custom_Form_Option extends CRM_Core_Form {
    */
   public function buildQuickForm() {
     if ($this->_action == CRM_Core_Action::DELETE) {
+      $option = civicrm_api3('option_value', 'getsingle', array('id' => $this->_id));
+      $this->assign('label', $option['label']);
       $this->addButtons(array(
           array(
             'type' => 'next',
@@ -399,10 +405,11 @@ SELECT count(*)
     $params = $this->controller->exportValues('Option');
 
     if ($this->_action == CRM_Core_Action::DELETE) {
+      $option = civicrm_api3('option_value', 'getsingle', array('id' => $this->_id));
       $fieldValues = array('option_group_id' => $this->_optionGroupID);
-      $wt = CRM_Utils_Weight::delWeight('CRM_Core_DAO_OptionValue', $this->_id, $fieldValues);
+      CRM_Utils_Weight::delWeight('CRM_Core_DAO_OptionValue', $this->_id, $fieldValues);
       CRM_Core_BAO_CustomOption::del($this->_id);
-      CRM_Core_Session::setStatus(ts('Your multiple choice option has been deleted'), ts('Deleted'), 'success');
+      CRM_Core_Session::setStatus(ts('Option "%1" has been deleted.', array(1 => $option['label'])), ts('Deleted'), 'success');
       return;
     }
 
@@ -445,7 +452,7 @@ SELECT count(*)
         CRM_Core_DAO::VALUE_SEPARATOR,
         substr($customField->default_value, 1, -1)
       );
-      if (CRM_Utils_Array::value('default_value', $params)) {
+      if (!empty($params['default_value'])) {
         if (!in_array($customOption->value, $defVal)) {
           if (empty($defVal[0])) {
             $defVal = array($customOption->value);
@@ -490,7 +497,7 @@ SELECT count(*)
           break;
       }
 
-      if (CRM_Utils_Array::value('default_value', $params)) {
+      if (!empty($params['default_value'])) {
         $customField->default_value = $customOption->value;
         $customField->save();
       }

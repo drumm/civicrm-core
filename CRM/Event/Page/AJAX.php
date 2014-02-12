@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -52,16 +52,35 @@ class CRM_Event_Page_AJAX {
       $whereClause .= " AND ( end_date IS NULL OR end_date >= NOW() )";
     }
     $query = "
-SELECT title, id
-FROM civicrm_event
-WHERE {$whereClause}
-ORDER BY title
+      SELECT civicrm_event.title AS title,
+        civicrm_event.id AS id,
+        civicrm_address.city AS city,
+        civicrm_event.start_date
+      FROM civicrm_event
+        LEFT JOIN civicrm_loc_block ON
+          civicrm_event.loc_block_id = civicrm_loc_block.id
+        LEFT JOIN civicrm_address ON
+          civicrm_loc_block.address_id = civicrm_address.id
+      WHERE
+        {$whereClause}
+      ORDER BY
+        civicrm_event.title
 ";
     $dao = CRM_Core_DAO::executeQuery($query);
+    $results = array();
     while ($dao->fetch()) {
-      echo $elements = "$dao->title|$dao->id\n";
+      $fields = array();
+      foreach (array('title', 'city') as $field) {
+        if (isset($dao->$field)) {
+          array_push($fields, $dao->$field);
+        }
+      }
+      if (isset($dao->start_date)) {
+        array_push($fields, CRM_Utils_Date::customFormat($dao->start_date));
+      }
+      $results[$dao->id] = implode(' - ', $fields);
     }
-    CRM_Utils_System::civiExit();
+    CRM_Core_Page_AJAX::autocompleteResults($results);
   }
 
   /**
@@ -85,10 +104,11 @@ AND {$whereClause}
 ORDER by v.weight";
 
     $dao = CRM_Core_DAO::executeQuery($query);
+    $results = array();
     while ($dao->fetch()) {
-      echo $elements = "$dao->label|$dao->value\n";
+      $results[$dao->value] = $dao->label;
     }
-    CRM_Utils_System::civiExit();
+    CRM_Core_Page_AJAX::autocompleteResults($results);
   }
 
   /**
@@ -112,14 +132,16 @@ LEFT JOIN civicrm_price_set_entity ce ON ce.price_set_id = cf.price_set_id
 WHERE ce.entity_table = 'civicrm_event' AND {$whereClause}
 GROUP BY cv.label";
     $dao = CRM_Core_DAO::executeQuery($query);
+    $results = array();
     while ($dao->fetch()) {
-      echo $elements = "$dao->label|$dao->id\n";
+      $results[$dao->id] = $dao->label;
     }
-    CRM_Utils_System::civiExit();
+    CRM_Core_Page_AJAX::autocompleteResults($results);
   }
 
   function eventList() {
-    $events = CRM_Event_BAO_Event::getEvents(TRUE);
+    $listparams = CRM_Utils_Array::value('listall', $_REQUEST, 1);
+    $events = CRM_Event_BAO_Event::getEvents($listparams);
 
     $elements = array(array('name' => ts('- select -'),
         'value' => '',

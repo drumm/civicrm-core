@@ -1,6 +1,6 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -41,16 +41,26 @@
     <tr>
         <td colspan="1">{$form.sort_name.label}<br />
             {$form.sort_name.html|crmAddClass:big} {help id="id-create_sort_name"}
-        </td>
-        <td width="100%"><label>{if $sms eq 1}{ts}SMS Status{/ts}{else}{ts}Mailing Status{/ts}{/if}</label><br />
-        <div class="listing-box" style="width: auto; height: 60px">
-            {foreach from=$form.mailing_status item="mailing_status_val"}
-            <div class="{cycle values="odd-row,even-row"}">
-                {$mailing_status_val.html}
+            <br/><br/>
+            <div class="crm-search-form-block-is_archive">
+            {$form.is_archived.label}<br/>
+            {$form.is_archived.html}
             </div>
-            {/foreach}
-        </div><br />
         </td>
+        {if $form.mailing_status}
+           <td width="100%"><label>{if $sms eq 1}{ts}SMS Status{/ts}{else}{ts}Mailing Status{/ts}{/if}</label><br />
+           <div class="listing-box" style="width: auto; height: 100px">
+             {foreach from=$form.mailing_status item="mailing_status_val"}
+             <div class="{cycle values="odd-row,even-row"}">
+               {$mailing_status_val.html}
+             </div>
+            {/foreach}
+            <div class='odd-row'>
+              {$form.status_unscheduled.html}
+            </div>
+           </div><br />
+           </td>
+        {/if}
     </tr>
 
     {* campaign in mailing search *}
@@ -62,3 +72,25 @@
     </tr>
 </table>
 </div>
+
+{literal}
+<script type="text/javascript">
+  cj(document).ready( function( ) {
+    var archiveOption = cj("input[name^='is_archived']:radio");
+    cj('#status_unscheduled').change(function() {
+      if (cj(this).prop('checked') ) {
+        archiveOption.prop({checked: false, disabled: true}).change();
+      } else {
+        archiveOption.prop('disabled', false);
+      }
+    }).trigger('change');
+    archiveOption.change(function() {
+      if (cj("input[name^='is_archived']:radio:checked").length) {
+        cj('#status_unscheduled').prop({checked: false, disabled: true}).change();
+      } else {
+        cj('#status_unscheduled').prop('disabled', false);
+      }
+    }).trigger('change');
+  });
+</script>
+{/literal}

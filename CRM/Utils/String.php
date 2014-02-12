@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -402,7 +402,7 @@ class CRM_Utils_String {
   /**
    * Convert a HTML string into a text one using html2text
    *
-   * @param string $html  the tring to be converted
+   * @param string $html  the string to be converted
    *
    * @return string       the converted string
    * @access public
@@ -410,8 +410,11 @@ class CRM_Utils_String {
    */
   static function htmlToText($html) {
     require_once 'packages/html2text/rcube_html2text.php';
-    $converter = new rcube_html2text($html);
-    return $converter->get_text();
+    $token_html = preg_replace('!\{([a-z_.]+)\}!i', 'token:{$1}', $html);
+    $converter = new rcube_html2text($token_html);
+    $token_text = $converter->get_text();
+    $text = preg_replace('!token\:\{([a-z_.]+)\}!i', '{$1}', $token_text);
+    return $text;
   }
 
   static function extractName($string, &$params) {
@@ -476,19 +479,6 @@ class CRM_Utils_String {
       }
     }
     return $result;
-  }
-
-  /**
-   * Function to add include files needed for jquery
-   *
-   * This appears to be used in cases where the normal html-header
-   * provided by CRM_Core_Resources can't be used (e.g. when outputting in
-   * "print" mode, the execution will short-circuit without allowing the
-   * CMS to output JS/CSS tags).
-   */
-  static function addJqueryFiles(&$html) {
-    CRM_Core_Resources::singleton()->addCoreResources('html-header');
-    return CRM_Core_Region::instance('html-header')->render('', FALSE) . $html;
   }
 
   /**

@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -63,6 +63,36 @@ class CRM_Contact_Form_Task_Email extends CRM_Contact_Form_Task {
   public $_templates = NULL;
 
   /**
+   * store "to" contact details
+   * @var array
+   */
+  public $_toContactDetails = array();
+
+  /**
+   * store all selected contact id's, that includes to, cc and bcc contacts
+   * @var array
+   */
+  public $_allContactIds = array();
+
+  /**
+   * store only "to" contact ids
+   * @var array
+   */
+  public $_toContactIds = array();
+
+  /**
+   * store only "cc" contact ids
+   * @var array
+   */
+  public $_ccContactIds = array();
+
+  /**
+   * store only "bcc" contact ids
+   * @var array
+   */
+  public $_bccContactIds = array();
+
+  /**
    * build all the data structures needed to build the form
    *
    * @return void
@@ -114,7 +144,7 @@ class CRM_Contact_Form_Task_Email extends CRM_Contact_Form_Task {
    *
    * @access public
    *
-   * @return None
+   * @return void
    */
   public function postProcess() {
     CRM_Contact_Form_Task_EmailCommon::postProcess($this);

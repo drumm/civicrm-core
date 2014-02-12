@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -69,13 +69,18 @@ class CRM_Activity_Import_Parser_Activity extends CRM_Activity_Import_Parser {
    * @access public
    */
   function init() {
+    $activityContact = CRM_Activity_BAO_ActivityContact::import();
+    $activityTarget['target_contact_id'] = $activityContact['contact_id'];
     $fields = array_merge(CRM_Activity_BAO_Activity::importableFields(),
-      CRM_Activity_BAO_ActivityTarget::import()
+      $activityTarget
     );
 
-    $fields = array_merge($fields, array('activity_label' => array('title' => ts('Activity Type Label'),
-          'headerPattern' => '/(activity.)?type label?/i',
-        )));
+    $fields = array_merge($fields, array(
+      'activity_label' => array(
+        'title' => ts('Activity Type Label'),
+        'headerPattern' => '/(activity.)?type label?/i',
+      )
+    ));
 
     foreach ($fields as $name => $field) {
       $field['type'] = CRM_Utils_Array::value('type', $field, CRM_Utils_Type::T_INT);
@@ -304,7 +309,7 @@ class CRM_Activity_Import_Parser_Activity extends CRM_Activity_Import_Parser {
           $params['target_contact_id'] = $cid;
           $params['version'] = 3;
           $newActivity = civicrm_api('activity', 'create', $params);
-          if (CRM_Utils_Array::value('is_error', $newActivity)) {
+          if (!empty($newActivity['is_error'])) {
             array_unshift($values, $newActivity['error_message']);
             return CRM_Import_Parser::ERROR;
           }
@@ -334,7 +339,7 @@ class CRM_Activity_Import_Parser_Activity extends CRM_Activity_Import_Parser {
           }
         }
 
-        if (CRM_Utils_Array::value('external_identifier', $params)) {
+        if (!empty($params['external_identifier'])) {
           if ($disp) {
             $disp .= "AND {$params['external_identifier']}";
           }
@@ -348,12 +353,12 @@ class CRM_Activity_Import_Parser_Activity extends CRM_Activity_Import_Parser {
       }
     }
     else {
-      if (CRM_Utils_Array::value('external_identifier', $params)) {
+      if (!empty($params['external_identifier'])) {
         $targetContactId = CRM_Core_DAO::getFieldValue('CRM_Contact_DAO_Contact',
           $params['external_identifier'], 'id', 'external_identifier'
         );
 
-        if (CRM_Utils_Array::value('target_contact_id', $params) &&
+        if (!empty($params['target_contact_id']) &&
           $params['target_contact_id'] != $targetContactId
         ) {
           array_unshift($values, 'Mismatch of External identifier :' . $params['external_identifier'] . ' and Contact Id:' . $params['target_contact_id']);
@@ -370,7 +375,7 @@ class CRM_Activity_Import_Parser_Activity extends CRM_Activity_Import_Parser {
 
       $params['version'] = 3;
       $newActivity = civicrm_api('activity', 'create', $params);
-      if (CRM_Utils_Array::value('is_error', $newActivity)) {
+      if (!empty($newActivity['is_error'])) {
         array_unshift($values, $newActivity['error_message']);
         return CRM_Import_Parser::ERROR;
       }

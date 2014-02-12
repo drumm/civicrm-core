@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -55,7 +55,7 @@ class CRM_Contact_Form_Task_AddToOrganization extends CRM_Contact_Form_Task {
    *
    * @access public
    *
-   * @return None
+   * @return void
    */
   function buildQuickForm() {
     CRM_Utils_System::setTitle(ts('Add Contacts to Organization'));
@@ -116,14 +116,14 @@ class CRM_Contact_Form_Task_AddToOrganization extends CRM_Contact_Form_Task {
    *
    * @access public
    *
-   * @return None
+   * @return void
    */
   public function postProcess() {
     // store the submitted values in an array
     $params = $this->controller->exportValues($this->_name);
 
     $this->set('searchDone', 0);
-    if (CRM_Utils_Array::value('_qf_AddToOrganization_refresh', $_POST)) {
+    if (!empty($_POST['_qf_AddToOrganization_refresh'])) {
       $searchParams['contact_type'] = array('Organization' => 'Organization');
       $searchParams['rel_contact'] = $params['name'];
       CRM_Contact_Form_Task_AddToHousehold::search($this, $searchParams);

@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -156,7 +156,7 @@ class CRM_Financial_Form_Export extends CRM_Core_Form {
    * process the form after the input has been submitted and validated
    *
    * @access public
-   * @return None
+   * @return void
    */
   public function postProcess( ) {
     if (!$this->_exportFormat) {

@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -93,14 +93,12 @@ class CRM_Price_Page_Field extends CRM_Core_Page {
         ),
         CRM_Core_Action::DISABLE => array(
           'name' => ts('Disable'),
-          'extra' => 'onclick = "enableDisable( %%fid%%,\'' . 'CRM_Price_BAO_PriceField' . '\',\'' . 'enable-disable' . '\' );"',
-          'ref' => 'disable-action',
+          'ref' => 'crm-enable-disable',
           'title' => ts('Disable Price'),
         ),
         CRM_Core_Action::ENABLE => array(
           'name' => ts('Enable'),
-          'extra' => 'onclick = "enableDisable( %%fid%%,\'' . 'CRM_Price_BAO_PriceField' . '\',\'' . 'disable-enable' . '\' );"',
-          'ref' => 'enable-action',
+          'ref' => 'crm-enable-disable',
           'title' => ts('Enable Price'),
         ),
         CRM_Core_Action::DELETE => array(
@@ -124,6 +122,7 @@ class CRM_Price_Page_Field extends CRM_Core_Page {
    * @access public
    */
   function browse() {
+    CRM_Core_Resources::singleton()->addScriptFile('civicrm', 'js/crm.livePage.js');
     $priceField    = array();
     $priceFieldBAO = new CRM_Price_BAO_PriceField();
 
@@ -172,11 +171,18 @@ class CRM_Price_Page_Field extends CRM_Core_Page {
       $htmlTypes = CRM_Price_BAO_PriceField::htmlTypes();
       $priceField[$priceFieldBAO->id]['html_type'] = $htmlTypes[$priceField[$priceFieldBAO->id]['html_type']];
       $priceField[$priceFieldBAO->id]['order'] = $priceField[$priceFieldBAO->id]['weight'];
-      $priceField[$priceFieldBAO->id]['action'] = CRM_Core_Action::formLink(self::actionLinks(), $action,
+      $priceField[$priceFieldBAO->id]['action'] = CRM_Core_Action::formLink(
+        self::actionLinks(),
+        $action,
         array(
           'fid' => $priceFieldBAO->id,
           'sid' => $this->_sid,
-        )
+        ),
+        ts('more'),
+        FALSE,
+        'priceField.row.actions',
+        'PriceField',
+        $priceFieldBAO->id
       );
     }
 

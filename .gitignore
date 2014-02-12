@@ -20,6 +20,7 @@ CRM/Contact/DAO/RelationshipType.php
 CRM/Contact/DAO/SavedSearch.php
 CRM/Contact/DAO/SubscriptionHistory.php
 CRM/Contribute/DAO
+CRM/Core/DAO/AllCoreTables.php
 CRM/Core/DAO/.listAll.php
 CRM/Core/DAO/listAll.php
 CRM/Core/DAO/ActionLog.php
@@ -27,7 +28,6 @@ CRM/Core/DAO/ActionMapping.php
 CRM/Core/DAO/ActionSchedule.php
 CRM/Core/DAO/Address.php
 CRM/Core/DAO/AddressFormat.php
-CRM/Core/DAO/AllCoreTables.php
 CRM/Core/DAO/Batch.php
 CRM/Core/DAO/Cache.php
 CRM/Core/DAO/Component.php
@@ -60,6 +60,7 @@ CRM/Core/DAO/Managed.php
 CRM/Core/DAO/Mapping.php
 CRM/Core/DAO/MappingField.php
 CRM/Core/DAO/Menu.php
+CRM/Core/DAO/MessageTemplate.php
 CRM/Core/DAO/MessageTemplates.php
 CRM/Core/DAO/Navigation.php
 CRM/Core/DAO/Note.php
@@ -86,6 +87,7 @@ CRM/Core/DAO/UFGroup.php
 CRM/Core/DAO/UFJoin.php
 CRM/Core/DAO/UFMatch.php
 CRM/Core/DAO/Website.php
+CRM/Core/DAO/WordReplacement.php
 CRM/Core/DAO/Worldregion.php
 CRM/Core/I18n/SchemaStructure.php
 CRM/Dedupe/DAO

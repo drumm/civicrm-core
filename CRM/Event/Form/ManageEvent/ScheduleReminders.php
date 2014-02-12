@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -58,7 +58,7 @@ class CRM_Event_Form_ManageEvent_ScheduleReminders extends CRM_Event_Form_Manage
         $field = 'event_template';
       }
       $reminderList = CRM_Core_BAO_ActionSchedule::getList(FALSE, $field, $this->_id );
-      if (is_array($reminderList)) {
+      if ($reminderList && is_array($reminderList)) {
         // Add action links to each of the reminders
         foreach ($reminderList as & $format) {
           $action = CRM_Core_Action::UPDATE + CRM_Core_Action::DELETE;
@@ -74,11 +74,22 @@ class CRM_Event_Form_ManageEvent_ScheduleReminders extends CRM_Event_Form_Manage
           $format['action'] = CRM_Core_Action::formLink(
             $links,
             $action,
-            array('id' => $format['id'])
+            array('id' => $format['id']),
+            ts('more'),
+            FALSE,
+            'event.reminder.list',
+            'Event',
+            $this->_id
           );
         }
-        $this->assign('rows', $reminderList);
       }
+      else {
+        $reminderList = TRUE;
+      }
+      $this->assign('rows', $reminderList);
+
+      // Update tab "disabled" css class
+      $this->ajaxResponse['tabValid'] = !empty($reminderList) && is_array($reminderList);
     }
   }
 
@@ -88,7 +99,7 @@ class CRM_Event_Form_ManageEvent_ScheduleReminders extends CRM_Event_Form_Manage
    *
    * @access public
    *
-   * @return None
+   * @return void
    */
   function setDefaultValues() {
     $defaults = array();
@@ -100,7 +111,7 @@ class CRM_Event_Form_ManageEvent_ScheduleReminders extends CRM_Event_Form_Manage
   /**
    * Function to build the form
    *
-   * @return None
+   * @return void
    * @access public
    */
   public function buildQuickForm() {
@@ -124,8 +135,14 @@ class CRM_Event_Form_ManageEvent_ScheduleReminders extends CRM_Event_Form_Manage
     $selectionOptions = CRM_Core_BAO_ActionSchedule::getSelection($this->_mappingID);
     extract($selectionOptions);
 
-    $entity = $this->add('select', 'entity', ts('Recipient(s)'), $sel3[$this->_mappingID][0], TRUE);
-    $entity->setMultiple(TRUE);
+    $this->assign('recipientMapping', json_encode($recipientMapping));
+
+    // Fixme: hack to adjust the output of CRM_Core_BAO_ActionSchedule::getSelection so it looks nice with the jQuery.select2 plugin
+    // TODO: fix this upstream
+    $options = $sel3[$this->_mappingID][0];
+    $attributes = array('multiple' => 'multiple', 'class' => 'crm-select2 huge', 'placeholder' => $options[0]);
+    unset($options[0]);
+    $entity = $this->add('select', 'entity', ts('Recipient(s)'), $options, TRUE, $attributes);
 
     //get the frequency units.
     $this->_freqUnits = array('hour' => 'hour') + CRM_Core_OptionGroup::values('recur_frequency_units');
@@ -172,10 +189,10 @@ class CRM_Event_Form_ManageEvent_ScheduleReminders extends CRM_Event_Form_Manage
     $this->add('select', 'limit_to', ts('Limit Options'), $limitOptions);
 
     $this->add('select', 'recipient', ts('Recipients'), $sel5[$recipient],
-      FALSE, array('onClick' => "showHideByValue('recipient','manual','recipientManual','table-row','select',false); showHideByValue('recipient','group','recipientGroup','table-row','select',false);")
+      FALSE, array('onchange' => "showHideByValue('recipient','manual','recipientManual','table-row','select',false); showHideByValue('recipient','group','recipientGroup','table-row','select',false);")
     );
     $recipientListing = $this->add('select', 'recipient_listing', ts('Recipient Listing'),
-      $sel3[$this->_mappingID][0]
+      $sel3[$this->_mappingID][0], FALSE, array('class' => 'crm-select2 huge')
     );
     $recipientListing->setMultiple(TRUE);
 
@@ -194,8 +211,8 @@ class CRM_Event_Form_ManageEvent_ScheduleReminders extends CRM_Event_Form_Manage
     $this->assign('tokenUrl', $tokenUrl);
     $this->add('text', 'recipient_manual_id', ts('Manual Recipients'));
 
-    $this->addElement('select', 'group_id', ts('Group'),
-      CRM_Core_PseudoConstant::staticGroup()
+    $this->add('select', 'group_id', ts('Group'),
+      CRM_Core_PseudoConstant::staticGroup(), FALSE, array('class' => 'crm-select2 huge')
     );
 
     CRM_Mailing_BAO_Mailing::commonCompose($this);
@@ -220,7 +237,7 @@ class CRM_Event_Form_ManageEvent_ScheduleReminders extends CRM_Event_Form_Manage
    */
   static function formRule($fields) {
     $errors = array();
-    if (CRM_Utils_Array::value('is_active', $fields) &&
+    if (!empty($fields['is_active']) &&
       CRM_Utils_System::isNull($fields['subject'])
     ) {
       $errors['subject'] = ts('Subject is a required field.');
@@ -244,7 +261,7 @@ class CRM_Event_Form_ManageEvent_ScheduleReminders extends CRM_Event_Form_Manage
    *
    * @access public
    *
-   * @return None
+   * @return void
    */
   public function postProcess() {
     if ($this->_action & CRM_Core_Action::DELETE) {
@@ -341,12 +358,12 @@ class CRM_Event_Form_ManageEvent_ScheduleReminders extends CRM_Event_Form_Manage
     //mail template is composed
     $composeParams = array();
     foreach ($composeFields as $key) {
-      if (CRM_Utils_Array::value($key, $values)) {
+      if (!empty($values[$key])) {
         $composeParams[$key] = $values[$key];
       }
     }
 
-    if (CRM_Utils_Array::value('updateTemplate', $composeParams)) {
+    if (!empty($composeParams['updateTemplate'])) {
       $templateParams = array(
         'msg_text' => $params['body_text'],
         'msg_html' => $params['body_html'],
@@ -356,10 +373,10 @@ class CRM_Event_Form_ManageEvent_ScheduleReminders extends CRM_Event_Form_Manage
 
       $templateParams['id'] = $values['template'];
 
-      $msgTemplate = CRM_Core_BAO_MessageTemplates::add($templateParams);
+      $msgTemplate = CRM_Core_BAO_MessageTemplate::add($templateParams);
     }
 
-    if (CRM_Utils_Array::value('saveTemplate', $composeParams)) {
+    if (!empty($composeParams['saveTemplate'])) {
       $templateParams = array(
         'msg_text' => $params['body_text'],
         'msg_html' => $params['body_html'],
@@ -369,7 +386,7 @@ class CRM_Event_Form_ManageEvent_ScheduleReminders extends CRM_Event_Form_Manage
 
       $templateParams['msg_title'] = $composeParams['saveTemplateName'];
 
-      $msgTemplate = CRM_Core_BAO_MessageTemplates::add($templateParams);
+      $msgTemplate = CRM_Core_BAO_MessageTemplate::add($templateParams);
     }
 
     if (isset($msgTemplate->id)) {

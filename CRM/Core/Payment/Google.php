@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -128,7 +128,7 @@ class CRM_Core_Payment_Google extends CRM_Core_Payment {
   function doTransferCheckout(&$params, $component) {
     $component = strtolower($component);
 
-    if (CRM_Utils_Array::value('is_recur', $params) &&
+    if (!empty($params['is_recur']) &&
       $params['contributionRecurID']
     ) {
       return $this->doRecurCheckout($params, $component);

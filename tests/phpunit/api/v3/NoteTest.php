@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -38,7 +38,7 @@ class api_v3_NoteTest extends CiviUnitTestCase {
   protected $_params;
   protected $_noteID;
   protected $_note;
-  public $_eNoticeCompliant = TRUE;
+
 
   function __construct() {
     parent::__construct();

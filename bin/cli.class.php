@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright Tech To The People http:tttp.eu (c) 2008                 |
  +--------------------------------------------------------------------+
@@ -51,6 +51,7 @@ class civicrm_cli {
   // optional arguments
   var $_site = 'localhost';
   var $_user = NULL;
+  var $_password = NULL;
 
   // all other arguments populate the parameters
   // array that is passed to civicrm_api
@@ -204,6 +205,15 @@ class civicrm_cli {
     CRM_Core_ClassLoader::singleton()->register();
 
     $this->_config = CRM_Core_Config::singleton();
+    
+    // HTTP_HOST will be 'localhost' unless overwritten with the -s argument.
+    // Now we have a Config object, we can set it from the Base URL.
+    if ($_SERVER['HTTP_HOST'] == 'localhost') {
+        $_SERVER['HTTP_HOST'] = preg_replace(
+                '!^https?://([^/]+)/$!i', 
+                '$1',
+                $this->_config->userFrameworkBaseURL);
+    }
 
     $class = 'CRM_Utils_System_' . $this->_config->userFramework;
 
@@ -366,7 +376,7 @@ class civicrm_cli_csv_file extends civicrm_cli {
   function convertLine($data) {
     $params = array();
     foreach ($this->header as $i => $field) {
-      //split any multiselect data, denoted with CRM_Core_DAO::VALUE_SEPARATOR 
+      //split any multiselect data, denoted with CRM_Core_DAO::VALUE_SEPARATOR
       if (strpos($data[$i], CRM_Core_DAO::VALUE_SEPARATOR) !== FALSE) {
         $data[$i] = explode(CRM_Core_DAO::VALUE_SEPARATOR,$data[$i]);
         $data[$i] = array_combine($data[$i], $data[$i]);

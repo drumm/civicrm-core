@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -55,7 +55,7 @@ class CRM_Friend_Form_Event extends CRM_Event_Form_ManageEvent {
    *
    * @access public
    *
-   * @return None
+   * @return void
    */
   public function setDefaultValues() {
     $defaults = array();
@@ -64,7 +64,7 @@ class CRM_Friend_Form_Event extends CRM_Event_Form_ManageEvent {
       $defaults['entity_table'] = 'civicrm_event';
       $defaults['entity_id'] = $this->_id;
       CRM_Friend_BAO_Friend::getValues($defaults);
-      if (CRM_Utils_Array::value('id', $defaults)) {
+      if (!empty($defaults['id'])) {
         $defaults['tf_id'] = CRM_Utils_Array::value('id', $defaults);
         $this->_friendId = $defaults['tf_id'];
         // lets unset the 'id' since it conflicts with eventID (or contribID)
@@ -91,7 +91,7 @@ class CRM_Friend_Form_Event extends CRM_Event_Form_ManageEvent {
   /**
    * Function to build the form
    *
-   * @return None
+   * @return void
    * @access public
    */
   public function buildQuickForm() {
@@ -104,7 +104,7 @@ class CRM_Friend_Form_Event extends CRM_Event_Form_ManageEvent {
    *
    * @access public
    *
-   * @return None
+   * @return void
    */
   public function postProcess() {
     // get the submitted form values.
@@ -125,6 +125,9 @@ class CRM_Friend_Form_Event extends CRM_Event_Form_ManageEvent {
     }
 
     CRM_Friend_BAO_Friend::addTellAFriend($formValues);
+
+    // Update tab "disabled" css class
+    $this->ajaxResponse['tabValid'] = !empty($formValues['tf_is_active']);
 
     parent::endPostProcess();
   }

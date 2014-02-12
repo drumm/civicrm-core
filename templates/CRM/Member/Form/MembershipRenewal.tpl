@@ -1,6 +1,6 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -138,8 +138,8 @@
                     <td>
                       <table class="compressed">
                         <tr class="crm-membership-form-block-honor-type">
-                          <td class="label">{$form.honor_type_id.label}</td>
-                          <td>{$form.honor_type_id.html}</td>
+                          <td class="label">{$form.soft_credit_type_id.label}</td>
+                          <td>{$form.soft_credit_type_id.html}</td>
                         </tr>
                         <tr id='contributionContact' class="crm-membership-form-block-contribution-type">
                           {include file="CRM/Contact/Form/NewContact.tpl"}
@@ -166,8 +166,8 @@
                   <td>{include file="CRM/common/jcalendar.tpl" elementName=receive_date}</td>
                 </tr>
                 <tr class="crm-member-membershiprenew-form-block-payment_instrument_id">
-                  <td class="label">{$form.payment_instrument_id.label}</td>
-                  <td>{$form.payment_instrument_id.html}</td>
+                  <td class="label">{$form.payment_instrument_id.label}<span class='marker'>*</span></td>
+                  <td>{$form.payment_instrument_id.html} {help id="payment_instrument_id" file="CRM/Contribute/Page/Tab.hlp"}</td>
                 </tr>
                 <tr id="checkNumber" class="crm-member-membershiprenew-form-block-check_number">
                   <td class="label">{$form.check_number.label}</td>
@@ -339,7 +339,7 @@
 
     cj(function () {
       cj('#record_contribution').click(function () {
-        if (cj(this).attr('checked')) {
+        if (cj(this).prop('checked')) {
           cj('#recordContribution').show();
           setPaymentBlock(true);
         }
@@ -371,11 +371,11 @@
 
       if (!checkboxEvent) {
         if (allMemberships[memType]['total_amount_numeric'] > 0) {
-          cj('#record_contribution').attr('checked', 'checked');
+          cj('#record_contribution').prop('checked', true);
           cj('#recordContribution').show();
         }
         else {
-          cj('#record_contribution').removeAttr('checked');
+          cj('#record_contribution').prop('checked', false);
           cj('#recordContribution').hide();
         }
       }
@@ -398,7 +398,7 @@
 
     function setDifferentContactBlock() {
       //get the
-      if (cj('#contribution_contact').attr('checked')) {
+      if (cj('#contribution_contact').prop('checked')) {
         cj('#record-different-contact').show();
       }
       else {

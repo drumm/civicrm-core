@@ -2,7 +2,7 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -211,7 +211,7 @@ class {$table.className} extends CRM_Core_DAO {ldelim}
                       'rule'      => '{$field.rule}',
 {/if} {* field.rule *}
 {if $field.default}
-                          'default'   => '{$field.default|substring:1:-1}',
+                         'default'   => '{if ($field.default[0]=="'" or $field.default[0]=='"')}{$field.default|substring:1:-1}{else}{$field.default}{/if}',
 {/if} {* field.default *}
 {if $field.enumValues}
                           'enumValues' => '{$field.enumValues}',
@@ -220,6 +220,15 @@ class {$table.className} extends CRM_Core_DAO {ldelim}
 {if $field.FKClassName}
                       'FKClassName' => '{$field.FKClassName}',
 {/if} {* field.FKClassName *}
+{if $field.html}
+  {assign var=htmlOptions value=$field.html}
+  'html' => array(
+{*{$htmlOptions|@print_array}*}
+  {foreach from=$htmlOptions key=optionKey item=optionValue}
+    '{$optionKey}' => '{$optionValue}',
+  {/foreach}
+  ),
+{/if} {* field.html *}
 {if $field.pseudoconstant}
 {assign var=pseudoOptions value=$field.pseudoconstant}
 'pseudoconstant' => array(
@@ -347,65 +356,6 @@ class {$table.className} extends CRM_Core_DAO {ldelim}
           {rdelim}
           return self::$_export;
       {rdelim}
-
-{if $table.hasEnum}
-    /**
-     * returns an array containing the enum fields of the {$table.name} table
-     *
-     * @return array (reference)  the array of enum fields
-     */
-    static function &getEnums() {ldelim}
-        static $enums = array(
-            {foreach from=$table.fields item=field}
-                {if $field.crmType == 'CRM_Utils_Type::T_ENUM'}
-                    '{$field.name}',
-                {/if}
-            {/foreach}
-        );
-        return $enums;
-    {rdelim}
-
-    /**
-     * returns a ts()-translated enum value for display purposes
-     *
-     * @param string $field  the enum field in question
-     * @param string $value  the enum value up for translation
-     *
-     * @return string  the display value of the enum
-     */
-    static function tsEnum($field, $value) {ldelim}
-        static $translations = null;
-        if (!$translations) {ldelim}
-            $translations = array(
-                {foreach from=$table.fields item=field}
-                    {if $field.crmType == 'CRM_Utils_Type::T_ENUM'}
-                        '{$field.name}' => array(
-                            {foreach from=$field.values item=value}
-                                '{$value}' => ts('{$value}'),
-                            {/foreach}
-                        ),
-                    {/if}
-                {/foreach}
-            );
-        {rdelim}
-        return $translations[$field][$value];
-    {rdelim}
-
-    /**
-     * adds $value['foo_display'] for each $value['foo'] enum from {$table.name}
-     *
-     * @param array $values (reference)  the array up for enhancing
-     * @return void
-     */
-    static function addDisplayEnums(&$values) {ldelim}
-        $enumFields =& {$table.className}::getEnums();
-        foreach ($enumFields as $enum) {ldelim}
-            if (isset($values[$enum])) {ldelim}
-                $values[$enum.'_display'] = {$table.className}::tsEnum($enum, $values[$enum]);
-            {rdelim}
-        {rdelim}
-    {rdelim}
-{/if}
 
 {rdelim}
 

@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -419,8 +419,15 @@ class CRM_Core_Block {
       NULL,
       CRM_Core_DAO::$_nullObject,
       $values,
+      CRM_Core_DAO::$_nullObject,
       CRM_Core_DAO::$_nullObject
     );
+
+    foreach ($values as $key => $val) {
+      if (!empty($val['title'])) {
+        $values[$key]['name'] = CRM_Utils_Array::value('name', $val, $val['title']);
+      }
+    }
 
     self::setProperty(self::CREATE_NEW, 'templateValues', array('shortCuts' => $values));
   }
@@ -562,7 +569,8 @@ class CRM_Core_Block {
       }
       // do nothing
     }
-    elseif (!CRM_Core_Permission::check('access CiviCRM')) {
+    // require 'access CiviCRM' permissons, except for the language switch block
+    elseif (!CRM_Core_Permission::check('access CiviCRM') && $id!=self::LANGSWITCH) {
       return NULL;
     }
     elseif ($id == self::ADD) {

@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -65,6 +65,9 @@ class CRM_Logging_Differ {
       2 => array($this->log_date, 'String'),
     );
 
+    $logging = new CRM_Logging_Schema;
+    $addressCustomTables = $logging->entityCustomDataLogTables('Address');
+
     $contactIdClause = $join = '';
     if ( $contactID ) {
       $params[3] = array($contactID, 'Integer');
@@ -97,7 +100,18 @@ LEFT JOIN civicrm_activity_contact source ON source.activity_id = lt.id AND sour
         $contactIdClause = "AND id = (select case_id FROM civicrm_case_contact WHERE contact_id = %3 LIMIT 1)";
         break;
       default:
-        $contactIdClause = "AND contact_id = %3";
+        if (array_key_exists($table, $addressCustomTables)) {
+          $join  = "INNER JOIN `{$this->db}`.`log_civicrm_address` et ON et.id = lt.entity_id";
+          $contactIdClause = "AND contact_id = %3";
+          break;
+        }
+
+        // allow tables to be extended by report hook query objects
+        list($contactIdClause, $join) = CRM_Report_BAO_Hook::singleton()->logDiffClause($this, $table);
+
+        if (empty($contactIdClause)) {
+          $contactIdClause = "AND contact_id = %3";
+        }
         if ( strpos($table, 'civicrm_value') !== false ) {
           $contactIdClause = "AND entity_id = %3";
         }
@@ -108,8 +122,8 @@ LEFT JOIN civicrm_activity_contact source ON source.activity_id = lt.id AND sour
     $sql = "
 SELECT DISTINCT lt.id FROM `{$this->db}`.`log_$table` lt
 {$join}
-WHERE log_conn_id = %1 AND
-      log_date BETWEEN DATE_SUB(%2, INTERVAL {$this->interval}) AND DATE_ADD(%2, INTERVAL {$this->interval})
+WHERE lt.log_conn_id = %1 AND
+      lt.log_date BETWEEN DATE_SUB(%2, INTERVAL {$this->interval}) AND DATE_ADD(%2, INTERVAL {$this->interval})
       {$contactIdClause}";
 
     $dao = CRM_Core_DAO::executeQuery($sql, $params);
@@ -182,7 +196,7 @@ WHERE log_conn_id = %1 AND
         // we need to make sure separators are trimmed
         if ($diff == 'case_type_id') {
           foreach (array('original', 'changed') as $var)  {
-            if (CRM_Utils_Array::value($diff, $$var)) {
+            if (!empty($$var[$diff])) {
               $holder =& $$var;
               $val = explode(CRM_Case_BAO_Case::VALUE_SEPARATOR, $holder[$diff]);
               $holder[$diff] = CRM_Utils_Array::value(1, $val);
@@ -272,6 +286,8 @@ WHERE log_conn_id = %1 AND
       }
       elseif (substr($table, 0, 14) == 'civicrm_value_') {
         list($titles[$table], $values[$table]) = $this->titlesAndValuesForCustomDataTable($table);
+      } else {
+        $titles[$table] = $values[$table] = array();
       }
     }
 

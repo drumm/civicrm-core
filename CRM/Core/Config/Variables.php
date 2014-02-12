@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -490,7 +490,10 @@ class CRM_Core_Config_Variables extends CRM_Core_Config_Defaults {
     static $cachedSymbol = NULL;
     if (!$cachedSymbol || $defaultCurrency) {
       if ($this->defaultCurrency || $defaultCurrency) {
-        $this->currencySymbols = CRM_Contribute_BAO_Contribution::buildOptions('currency');
+        $this->currencySymbols = CRM_Core_PseudoConstant::get('CRM_Contribute_DAO_Contribution', 'currency', array(
+          'labelColumn' => 'symbol',
+          'orderColumn' => TRUE,
+        ));
         $currency = $defaultCurrency ? $defaultCurrency : $this->defaultCurrency;
         $cachedSymbol = CRM_Utils_Array::value($currency, $this->currencySymbols, '');
       }
@@ -582,7 +585,12 @@ class CRM_Core_Config_Variables extends CRM_Core_Config_Defaults {
       $country = array();
       if (is_array($this->provinceLimit)) {
         foreach ($this->provinceLimit as $val) {
-          $country[] = $countryIsoCodes[$val];
+          // CRM-12007
+          // some countries have disappeared and hence they might be in country limit
+          // but not in the country table
+          if (isset($countryIsoCodes[$val])) {
+            $country[] = $countryIsoCodes[$val];
+          }
         }
       }
       else {

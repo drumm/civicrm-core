@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -172,7 +172,7 @@ class CRM_Profile_Selector_Listings extends CRM_Core_Selector_Base implements CR
 
     // add group id to params if a uf group belong to a any group
     if ($groupId) {
-      if (CRM_Utils_Array::value('group', $this->_params)) {
+      if (!empty($this->_params['group'])) {
         $this->_params['group'][$groupId] = 1;
       }
       else {
@@ -318,7 +318,7 @@ class CRM_Profile_Selector_Listings extends CRM_Core_Selector_Base implements CR
           continue;
         }
 
-        if (CRM_Utils_Array::value('in_selector', $field) &&
+        if (!empty($field['in_selector']) &&
           !in_array($name, $skipFields)
         ) {
 
@@ -461,9 +461,8 @@ class CRM_Profile_Selector_Listings extends CRM_Core_Selector_Base implements CR
         }
         $varArray[$key] = $field;
       }
+      $sort->_vars = $varArray;
     }
-
-    $sort->_vars = $varArray;
 
     $additionalWhereClause = 'contact_a.is_deleted = 0';
     $returnQuery = NULL;
@@ -510,7 +509,7 @@ class CRM_Profile_Selector_Listings extends CRM_Core_Selector_Base implements CR
         continue;
       }
 
-      if (CRM_Utils_Array::value('in_selector', $field) &&
+      if (!empty($field['in_selector']) &&
         !in_array($key, $skipFields)
       ) {
         if (strpos($key, '-') !== FALSE) {
@@ -618,9 +617,6 @@ class CRM_Profile_Selector_Listings extends CRM_Core_Selector_Base implements CR
         elseif ($name == 'preferred_language') {
           $row[] = CRM_Core_PseudoConstant::getLabel('CRM_Contact_DAO_Contact', 'preferred_language', $result->$name);
         }
-        elseif (in_array(substr($name, 0, -3), array('gender', 'prefix', 'suffix'))) {
-          $row[] = CRM_Core_PseudoConstant::getLabel('CRM_Contact_DAO_Contact', $name, $result->$name);
-        }
         elseif ($multipleSelectFields &&
           array_key_exists($name, $multipleSelectFields)
         ) {
@@ -698,7 +694,12 @@ class CRM_Profile_Selector_Listings extends CRM_Core_Selector_Base implements CR
 
       $row[] = CRM_Core_Action::formLink($newLinks,
         $mask,
-        $params
+        $params,
+        ts('more'),
+        FALSE,
+        'profile.selector.row',
+        'Contact',
+        $result->contact_id
       );
 
       if (!$empty) {
@@ -753,7 +754,7 @@ class CRM_Profile_Selector_Listings extends CRM_Core_Selector_Base implements CR
             }
           }
 
-          if (CRM_Utils_Array::value('in_selector', $properties)) {
+          if (!empty($properties['in_selector'])) {
             $selectorSet = TRUE;
           }
         }

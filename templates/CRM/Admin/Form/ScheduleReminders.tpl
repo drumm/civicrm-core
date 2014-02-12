@@ -1,6 +1,6 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright (C) 2011 Marty Wright                                    |
  | Licensed to CiviCRM under the Academic Free License version 3.0.   |
@@ -122,8 +122,16 @@
         <td class="label">{$form.group_id.label}</td>
         <td>{$form.group_id.html}</td>
     </tr>
+    <tr id="msgMode" class="crm-scheduleReminder-form-block-mode">
+      <td class="label">{$form.mode.label}</td>
+      <td>{$form.mode.html}</td>
+    </tr>
+    <tr id="smsProvider" class="crm-scheduleReminder-form-block-sms_provider_id">
+      <td class="label">{$form.sms_provider_id.label}</td>
+      <td>{$form.sms_provider_id.html}</td>
+    </tr>
   </table>
-  <fieldset id="compose_id"><legend>{ts}Email{/ts}</legend>
+  <fieldset id="compose_id"><legend>{$title}</legend>
      <table id="email-field-table" class="form-layout-compressed">
         <tr class="crm-scheduleReminder-form-block-active">
            <td class="label"></td>
@@ -139,13 +147,9 @@
         </tr>
 
   </table>
-        {include file="CRM/Contact/Form/Task/EmailCommon.tpl" upload=1 noAttach=1}
+    <div id="email">{include file="CRM/Contact/Form/Task/EmailCommon.tpl" upload=1 noAttach=1}</div>
+    <div id="sms">{include file="CRM/Contact/Form/Task/SMSCommon.tpl" upload=1 noAttach=1}</div>
   </fieldset>
-
-{/if}
-
-<div class="crm-submit-buttons">{include file="CRM/common/formButtons.tpl" location="bottom"}</div>
-</div>
 
 {include file="CRM/common/showHideByFieldValue.tpl"
     trigger_field_id    = "is_repeat"
@@ -176,6 +180,9 @@
 
 {literal}
 <script type='text/javascript'>
+  cj(function($) {
+    $().crmAccordions();
+  });
     var entityMapping = eval({/literal}{$entityMapping}{literal});
     var recipientMapping = eval({/literal}{$recipientMapping}{literal});
 
@@ -188,11 +195,6 @@
             cj('#relativeDate').show();
             cj('#relativeDateRepeat').show();
         }
-    });
-
-    cj('#absolute_date_display').parent( ).children('.crm-clear-link').children('a').click( function() {
-        cj('#relativeDate').show();
-        cj('#relativeDateRepeat').show();
     });
 
     cj(function() {
@@ -209,23 +211,63 @@
          });
      });
 
-    cj(function() {
-       if ( cj('#is_recipient_listing').val( ) ) {
-           cj('#recipientList').show();
-       } else {
-           cj('#recipientList').hide();
-       }
-       cj('#recipient').change( function( ) {
-           populateRecipient();
-       });
-     });
+  cj(function () {
+    loadMsgBox();
+    cj('#mode').change(function () {
+      loadMsgBox();
+    });
+
+    showHideLimitTo();
+    cj('#entity_0').change(function () {
+      showHideLimitTo();
+    });
+  });
+
+  function loadMsgBox() {
+    if (cj('#mode').val() == 'Email' || cj('#mode').val() == 0){
+      cj('#sms').hide();
+      cj('#smsProvider').hide();
+      cj('#email').show();
+    }
+    else if (cj('#mode').val() == 'SMS'){
+      cj('#email').hide();
+      cj('#sms').show();
+      cj('#smsProvider').show();
+    }
+    else if (cj('#mode').val() == 'User_Preference'){
+        cj('#email').show();
+        cj('#sms').show();
+        cj('#smsProvider').show();
+      }
+  }
+
+  function showHideLimitTo() {
+    if (cj('#entity_0').val() == 1) {
+      cj('#limit_to').hide();
+    }
+    else {
+      cj('#limit_to').show();
+    }
+  }
+
+  cj(function () {
+    if (cj('#is_recipient_listing').val()) {
+      cj('#recipientList').show();
+    }
+    else {
+      cj('#recipientList').hide();
+    }
+    cj('#recipient').change(function () {
+      populateRecipient();
+    });
+  });
 
      function populateRecipient( ) {
          var recipient = cj("#recipient option:selected").val();
     var entity = cj("#entity_0 option:selected").val();
     var postUrl = "{/literal}{crmURL p='civicrm/ajax/populateRecipient' h=0}{literal}";
 
-    if(recipientMapping[recipient] == 'Participant Status' || recipientMapping[recipient] == 'Participant Role') {
+    if(recipientMapping[recipient] == 'Participant Status' || recipientMapping[recipient] == 'participant_role') {
           var elementID = '#recipient_listing';
              cj( elementID ).html('');
           cj.post(postUrl, {recipient: recipientMapping[recipient]},
@@ -286,3 +328,8 @@
 
  </script>
  {/literal}
+
+{/if}
+
+ <div class="crm-submit-buttons">{include file="CRM/common/formButtons.tpl" location="bottom"}</div>
+</div>

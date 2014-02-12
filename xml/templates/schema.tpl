@@ -1,5 +1,5 @@
 -- +--------------------------------------------------------------------+
--- | CiviCRM version 4.3                                                |
+-- | CiviCRM version 4.4                                                |
 -- +--------------------------------------------------------------------+
 -- | Copyright CiviCRM LLC (c) 2004-2013                                |
 -- +--------------------------------------------------------------------+
@@ -52,7 +52,7 @@ CREATE TABLE `{$table.name}` (
 {if ! $first},{/if}
 {assign var='first' value=false}
 
-     `{$field.name}` {$field.sqlType} {if $field.required}{if $field.required == "false"}NULL{else}NOT NULL{/if}{/if} {if $field.autoincrement}AUTO_INCREMENT{/if} {if $field.default|count_characters}DEFAULT {$field.default}{/if} {if $field.comment}COMMENT '{$field.comment}'{/if}
+     `{$field.name}` {$field.sqlType}{if $field.collate} COLLATE {$field.collate}{/if} {if $field.required}{if $field.required == "false"}NULL{else}NOT NULL{/if}{/if} {if $field.autoincrement}AUTO_INCREMENT{/if} {if $field.default|count_characters}DEFAULT {$field.default}{/if} {if $field.comment}COMMENT '{$field.comment}'{/if}
 {/foreach} {* table.fields *}
 
 {if $table.primaryKey}

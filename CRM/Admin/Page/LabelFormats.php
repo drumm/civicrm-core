@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright (C) 2011 Marty Wright                                    |
  | Licensed to CiviCRM under the Academic Free License version 3.0.   |
@@ -124,6 +124,7 @@ class CRM_Admin_Page_LabelFormats extends CRM_Core_Page_Basic {
    * @static
    */
   function browse($action = NULL) {
+    CRM_Core_Resources::singleton()->addScriptFile('civicrm', 'js/crm.livePage.js');
     // Get list of configured Label Formats
     $labelFormatList= CRM_Core_BAO_LabelFormat::getList();
     $nameFormatList= CRM_Core_BAO_LabelFormat::getList(false, 'name_badge');
@@ -131,25 +132,24 @@ class CRM_Admin_Page_LabelFormats extends CRM_Core_Page_Basic {
     // Add action links to each of the Label Formats
     foreach ($labelFormatList as & $format) {
       $action = array_sum(array_keys($this->links()));
-      if (CRM_Utils_Array::value('is_reserved', $format)) {
+      if (!empty($format['is_reserved'])) {
         $action -= CRM_Core_Action::DELETE;
       }
 
       $format['groupName'] = ts('Mailing Label');
       $format['action'] = CRM_Core_Action::formLink(self::links(), $action,
-        array('id' => $format['id'], 'group' => 'label_format'));
+        array('id' => $format['id'], 'group' => 'label_format'),
+        ts('more'),
+        FALSE,
+        'labelFormat.manage.action',
+        'LabelFormat',
+        $format['id']
+      );
     }
 
     // Add action links to each of the Label Formats
     foreach ($nameFormatList as & $format) {
-      $action = array_sum(array_keys($this->links()));
-      if (CRM_Utils_Array::value('is_reserved', $format)) {
-        $action -= CRM_Core_Action::DELETE;
-      }
-
       $format['groupName'] = ts('Name Badge');
-      $format['action'] = CRM_Core_Action::formLink(self::links(), $action,
-        array('id' => $format['id'], 'group' => 'name_badge'));
     }
 
     $labelFormatList = array_merge($labelFormatList, $nameFormatList);

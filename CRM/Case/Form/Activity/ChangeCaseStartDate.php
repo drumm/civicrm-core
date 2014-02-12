@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -51,7 +51,7 @@ class CRM_Case_Form_Activity_ChangeCaseStartDate {
    *
    * @access public
    *
-   * @return None
+   * @return void
    */
   static function setDefaultValues(&$form) {
     $defaults = array();
@@ -104,7 +104,7 @@ class CRM_Case_Form_Activity_ChangeCaseStartDate {
    *
    * @access public
    *
-   * @return None
+   * @return void
    */
   static function beginPostProcess(&$form, &$params) {
     if ($form->_context == 'case') {
@@ -117,10 +117,10 @@ class CRM_Case_Form_Activity_ChangeCaseStartDate {
    *
    * @access public
    *
-   * @return None
+   * @return void
    */
   static function endPostProcess(&$form, &$params, $activity) {
-    if (CRM_Utils_Array::value('start_date', $params)) {
+    if (!empty($params['start_date'])) {
       $params['start_date'] = CRM_Utils_Date::processDate($params['start_date'], $params['start_date_time']);
     }
 

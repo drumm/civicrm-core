@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -44,7 +44,7 @@ class CRM_Contribute_Form_ManagePremiums extends CRM_Contribute_Form {
    *
    * @access public
    *
-   * @return None
+   * @return void
    */
   public function preProcess() {
     parent::preProcess();
@@ -56,7 +56,7 @@ class CRM_Contribute_Form_ManagePremiums extends CRM_Contribute_Form {
    *
    * @access public
    *
-   * @return None
+   * @return void
    */
   function setDefaultValues() {
     $defaults = parent::setDefaultValues();
@@ -89,7 +89,7 @@ class CRM_Contribute_Form_ManagePremiums extends CRM_Contribute_Form {
   /**
    * Function to build the form
    *
-   * @return None
+   * @return void
    * @access public
    */
   public function buildQuickForm() {
@@ -242,14 +242,17 @@ class CRM_Contribute_Form_ManagePremiums extends CRM_Contribute_Form {
     if (isset($params['imageOption'])) {
       if ($params['imageOption'] == 'thumbnail') {
         if (!$params['imageUrl']) {
-          $errors['imageUrl'] = 'Image URL is Required ';
+          $errors['imageUrl'] = ts('Image URL is Required');
         }
         if (!$params['thumbnailUrl']) {
-          $errors['thumbnailUrl'] = 'Thumbnail URL is Required ';
+          $errors['thumbnailUrl'] = ts('Thumbnail URL is Required');
         }
       }
     }
-
+    // CRM-13231 financial type required if product has cost
+    if (!empty($params['cost']) && empty($params['financial_type_id'])) {
+      $errors['financial_type_id'] = ts('Financial Type is required for product having cost.');
+    }
     $fileLocation = $files['uploadFile']['tmp_name'];
     if ($fileLocation != "") {
       list($width, $height) = getimagesize($fileLocation);
@@ -296,7 +299,7 @@ class CRM_Contribute_Form_ManagePremiums extends CRM_Contribute_Form {
    *
    * @access public
    *
-   * @return None
+   * @return void
    */
   public function postProcess() {
 

@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -47,6 +47,7 @@ class CRM_Report_Form_Contribute_DetailTest extends CiviReportTestCase {
         'CRM_Report_Form_Contribute_Detail',
         array(
           'fields' => array(
+            'sort_name',
             'first_name',
             'email',
             'total_amount',

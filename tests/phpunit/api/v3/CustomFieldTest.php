@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
-| CiviCRM version 4.3                                                |
+| CiviCRM version 4.4                                                |
 +--------------------------------------------------------------------+
 | Copyright CiviCRM LLC (c) 2004-2013                                |
 +--------------------------------------------------------------------+
@@ -38,7 +38,7 @@ require_once 'tests/phpunit/CiviTest/CiviUnitTestCase.php';
  */
 class api_v3_CustomFieldTest extends CiviUnitTestCase {
   protected $_apiversion;
-  public $_eNoticeCompliant = TRUE;
+
   function get_info() {
     return array(
       'name' => 'Custom Field Create',
@@ -247,7 +247,7 @@ class api_v3_CustomFieldTest extends CiviUnitTestCase {
    */
   function testCustomFieldGetReturnOptions(){
     $customGroup = $this->customGroupCreate(array('extends' => 'Individual', 'title' => 'test_group'));
-    $customField = $this->customFieldCreate($customGroup['id'], 'test_name');
+    $customField = $this->customFieldCreate(array('custom_group_id' => $customGroup['id']));
 
     $result = $this->callAPISuccess('custom_field', 'getsingle', array(
       'id' => $customField['id'],
@@ -262,7 +262,7 @@ class api_v3_CustomFieldTest extends CiviUnitTestCase {
    */
   function testCustomFieldGetReturnArray(){
     $customGroup = $this->customGroupCreate(array('extends' => 'Individual', 'title' => 'test_group'));
-    $customField = $this->customFieldCreate($customGroup['id'], 'test_name');
+    $customField = $this->customFieldCreate(array('custom_group_id' => $customGroup['id']));
 
     $result = $this->callAPISuccess('custom_field', 'getsingle', array(
            'id' => $customField['id'],
@@ -277,7 +277,7 @@ class api_v3_CustomFieldTest extends CiviUnitTestCase {
    */
   function testCustomFieldGetReturnTwoOptions(){
     $customGroup = $this->customGroupCreate(array('extends' => 'Individual', 'test_group'));
-    $customField = $this->customFieldCreate($customGroup['id'], 'test_name');
+    $customField = $this->customFieldCreate(array('custom_group_id' => $customGroup['id']));
 
     $result = $this->callAPISuccess('custom_field', 'getsingle', array(
            'id' => $customField['id'],
@@ -365,7 +365,7 @@ class api_v3_CustomFieldTest extends CiviUnitTestCase {
    */
   function testCustomFieldDelete() {
     $customGroup = $this->customGroupCreate(array('extends' => 'Individual', 'title' => 'test_group'));
-    $customField = $this->customFieldCreate($customGroup['id'], 'test_name');
+    $customField = $this->customFieldCreate(array('custom_group_id' => $customGroup['id']));
     $this->assertNotNull($customField['id'], 'in line ' . __LINE__);
 
     $params = array(
@@ -387,6 +387,71 @@ class api_v3_CustomFieldTest extends CiviUnitTestCase {
     );
 
     $customField = $this->callAPISuccess('custom_field', 'delete', $customOptionValueFields);
+  }
+
+  /**
+   * If there's one custom group for "Contact" and one for "Activity", then "Contact.getfields"
+   * and "Activity.getfields" should return only their respective fields (not the other's fields),
+   * and unrelated entities should return no custom fields.
+   */
+  function testGetfields_CrossEntityPollution() {
+    $auxEntities = array('Email', 'Address', 'LocBlock', 'Membership', 'ContributionPage', 'ReportInstance');
+    $allEntities = array_merge(array('Contact', 'Activity'), $auxEntities);
+
+    // Baseline - getfields doesn't reporting any customfields for any entities
+    foreach ($allEntities as $entity) {
+      $this->assertEquals(
+        array(),
+        $this->getCustomFieldKeys($this->callAPISuccess($entity, 'getfields', array())),
+        "Baseline custom fields for $entity should be empty"
+      );
+    }
+
+    // Add some fields
+    $contactGroup = $this->customGroupCreate(array('extends' => 'Contact', 'title' => 'test_group_c'));
+    $contactField = $this->customFieldCreate(array('custom_group_id' => $contactGroup['id'], 'label' => 'For Contacts'));
+    $indivGroup = $this->customGroupCreate(array('extends' => 'Individual', 'title' => 'test_group_i'));
+    $indivField = $this->customFieldCreate(array('custom_group_id' => $indivGroup['id'], 'label' => 'For Individuals'));
+    $activityGroup = $this->customGroupCreate(array('extends' => 'Activity', 'title' => 'test_group_a'));
+    $activityField = $this->customFieldCreate(array('custom_group_id' => $activityGroup['id'], 'label' => 'For Activities'));
+
+    // Check getfields
+    $this->assertEquals(
+      array('custom_' . $contactField['id'], 'custom_' . $indivField['id']),
+      $this->getCustomFieldKeys($this->callAPISuccess('Contact', 'getfields', array())),
+      'Contact custom fields'
+    );
+    $this->assertEquals(
+      array('custom_' . $contactField['id'], 'custom_' . $indivField['id']),
+      $this->getCustomFieldKeys($this->callAPISuccess('Individual', 'getfields', array())),
+      'Individual custom fields'
+    );
+    $this->assertEquals(
+      array('custom_' . $contactField['id']),
+      $this->getCustomFieldKeys($this->callAPISuccess('Organization', 'getfields', array())),
+      'Organization custom fields'
+    );
+    $this->assertEquals(
+      array('custom_' . $activityField['id']),
+      $this->getCustomFieldKeys($this->callAPISuccess('Activity', 'getfields', array())),
+      'Activity custom fields'
+    );
+    foreach ($auxEntities as $entity) {
+      $this->assertEquals(
+        array(),
+        $this->getCustomFieldKeys($this->callAPISuccess($entity, 'getfields', array())),
+        "Custom fields for $entity should be empty"
+      );
+    }
+  }
+
+  function getCustomFieldKeys($getFieldsResult) {
+    $isCustom = function($key) {
+      return preg_match('/^custom_/', $key);
+    };
+    $r = array_values(array_filter(array_keys($getFieldsResult['values']), $isCustom));
+    sort($r);
+    return $r;
   }
 }
 

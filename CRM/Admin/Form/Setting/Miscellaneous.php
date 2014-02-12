@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -52,7 +52,7 @@ class CRM_Admin_Form_Setting_Miscellaneous extends CRM_Admin_Form_Setting {
   /**
    * Function to build the form
    *
-   * @return None
+   * @return void
    * @access public
    */
   public function buildQuickForm() {
@@ -65,7 +65,7 @@ class CRM_Admin_Form_Setting_Miscellaneous extends CRM_Admin_Form_Setting {
     $domain = new CRM_Core_DAO_Domain;
     $domain->find(TRUE);
     $attribs = $domain->locales || !$validTriggerPermission ?
-      array('disabled' => 'disabled') : NULL;
+      array('disabled' => 'disabled') : array();
 
     $this->assign('validTriggerPermission', $validTriggerPermission);
     $this->addYesNo('logging', ts('Logging'), NULL, NULL, $attribs);
@@ -122,9 +122,13 @@ class CRM_Admin_Form_Setting_Miscellaneous extends CRM_Admin_Form_Setting {
     if (!empty($fields['wkhtmltopdfPath'])) {
       // check and ensure that thi leads to the wkhtmltopdf binary
       // and it is a valid executable binary
+      // Only check the first space separated piece to allow for a value
+      // such as /usr/bin/xvfb-run -- wkhtmltopdf (CRM-13292)
+      $pieces = explode(' ', $fields['wkhtmltopdfPath']);
+      $path = $pieces[0];
       if (
-        !file_exists($fields['wkhtmltopdfPath']) ||
-        !is_executable($fields['wkhtmltopdfPath'])
+        !file_exists($path) ||
+        !is_executable($path)
       ) {
         $errors['wkhtmltopdfPath'] = ts('The wkhtmltodfPath does not exist or is not valid');
       }

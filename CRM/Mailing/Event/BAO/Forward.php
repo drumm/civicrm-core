@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -173,7 +173,7 @@ class CRM_Mailing_Event_BAO_Forward extends CRM_Mailing_Event_DAO_Forward {
     //append comment if added while forwarding.
     if (count($comment)) {
       $message->_txtbody = CRM_Utils_Array::value('body_text', $comment) . $message->_txtbody;
-      if (CRM_Utils_Array::value('body_html', $comment)) {
+      if (!empty($comment['body_html'])) {
         $message->_htmlbody = $comment['body_html'] . '<br />---------------Original message---------------------<br />' . $message->_htmlbody;
       }
     }
@@ -181,11 +181,9 @@ class CRM_Mailing_Event_BAO_Forward extends CRM_Mailing_Event_DAO_Forward {
     $body = $message->get();
     $headers = $message->headers();
 
-    PEAR::setErrorHandling(PEAR_ERROR_CALLBACK,
-      array('CRM_Core_Error', 'nullHandler')
-    );
     $result = NULL;
     if (is_object($mailer)) {
+      CRM_Core_Error::ignoreException();
       $result = $mailer->send($recipient, $headers, $body);
       CRM_Core_Error::setCallback();
     }
@@ -331,6 +329,7 @@ class CRM_Mailing_Event_BAO_Forward extends CRM_Mailing_Event_DAO_Forward {
     $orderBy = "sort_name ASC, {$forward}.time_stamp DESC";
     if ($sort) {
       if (is_string($sort)) {
+        $sort = CRM_Utils_Type::escape($sort, 'String');
         $orderBy = $sort;
       }
       else {

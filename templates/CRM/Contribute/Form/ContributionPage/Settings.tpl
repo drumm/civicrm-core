@@ -1,7 +1,7 @@
 
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -108,13 +108,53 @@
   </tr>
 </table>
 <table class="form-layout-compressed" id="honor">
-    <tr class="crm-contribution-contributionpage-settings-form-block-honor_block_title"><td class="label">{$form.honor_block_title.label} {if $action == 2}{include file='CRM/Core/I18n/Dialog.tpl' table='civicrm_contribution_page' field='honor_block_title' id=$contributionPageID}{/if}</td><td>{$form.honor_block_title.html}<br />
-      <span class="description">{ts}Title for the Honoree section (e.g. &quot;Honoree Information&quot;).{/ts}</span></td>
+    <tr class="crm-contribution-contributionpage-settings-form-block-honor_block_title">
+        <td class="label">
+            {$form.honor_block_title.label}
+            {if $action == 2}
+                {include file='CRM/Core/I18n/Dialog.tpl' table='civicrm_contribution_page' field='honor_block_title' id=$contributionPageID}
+            {/if}
+       </td>
+       <td>
+           {$form.honor_block_title.html}<br />
+           <span class="description">{ts}Title for the Honoree section (e.g. &quot;Honoree Information&quot;).{/ts}</span>
+       </td>
+   </tr>
+   <tr class="crm-contribution-contributionpage-settings-form-block-honor_block_text">
+       <td class="label">
+           {crmAPI var='result' entity='OptionGroup' action='get' sequential=1 name='soft_credit_type'}
+           {$form.honor_block_text.label}
+           {if $action == 2}
+               {include file='CRM/Core/I18n/Dialog.tpl' table='civicrm_contribution_page' field='honor_block_text' id=$contributionPageID}
+           {/if}
+       </td>
+       <td>
+           {$form.honor_block_text.html}<br />
+           <span class="description">{ts}Optional explanatory text for the Honoree section (displayed above the Honoree fields).{/ts}</span>
+       </td>
   </tr>
-  <tr class="crm-contribution-contributionpage-settings-form-block-honor_block_text">
-      <td class="label">{$form.honor_block_text.label} {if $action == 2}{include file='CRM/Core/I18n/Dialog.tpl' table='civicrm_contribution_page' field='honor_block_text' id=$contributionPageID}{/if}</td><td>{$form.honor_block_text.html}<br />
-      <span class="description">{ts}Optional explanatory text for the Honoree section (displayed above the Honoree fields).{/ts}</span></td>
+  <tr class="crm-contribution-contributionpage-settings-form-block-honor_soft_credit_types">
+      <td class="label">
+          {$form.soft_credit_types.label}
+      </td>
+      <td>
+          <dt style="text-align:left;">{$form.soft_credit_types.html|crmAddClass:huge}</dt>
+          <dd>
+              <a class="optionvalue-link" href="#" title='Click to edit available soft credit types'>
+                  <span class="batch-edit"></span>
+              </a>
+          </dd>
+      </td>
   </tr>
+  <tr class="crm-contribution-contributionpage-custom-form-block-custom_pre_id">
+      <td class="label">
+          {$form.honoree_profile.label}
+      </td>
+      <td class="html-adjust">
+          {$form.honoree_profile.html}
+          <span class="description">{ts}Profile to be included in the honoree section{/ts}</span>
+      </td>
+   </tr>
 </table>
 <table class="form-layout-compressed">
         <tr class="crm-contribution-contributionpage-settings-form-block-is_confirm_enabled">
@@ -171,6 +211,17 @@
             document.getElementById("honor").style.display = "none";
         }
      }
+     cj('.optionvalue-link').click(function() {
+        {/literal}"{crmAPI var='result' entity='OptionGroup' action='get' sequential=1 name='soft_credit_type'}"{literal};
+        var postURL = {/literal}"{crmURL p='civicrm/admin/options' q="gid="}{$result.id}"{literal};
+        CRM.loadForm(postURL).on('crmFormSuccess', function(e, data) {
+           cj('.ui-dialog a').click(function(){
+           //Todo: inline edit facility for soft_credit_type option group in jquery popup dialog
+           });
+        });
+      return false;
+    })
+
  {/literal}
 </script>
 

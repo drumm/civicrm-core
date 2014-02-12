@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -230,6 +230,9 @@ class CRM_Event_Form_Participant extends CRM_Contact_Form_Task {
     }
 
     if ($this->_id) {
+      $this->assign('participantId', $this->_id);
+      $statusId = CRM_Core_DAO::getFieldValue('CRM_Event_BAO_Participant', $this->_id, 'status_id', 'id');
+
       $this->_paymentId = CRM_Core_DAO::getFieldValue('CRM_Event_DAO_ParticipantPayment',
         $this->_id, 'id', 'participant_id'
       );
@@ -288,7 +291,7 @@ class CRM_Event_Form_Participant extends CRM_Contact_Form_Task {
       }
       // also check for billing information
       // get the billing location type
-      $locationTypes = CRM_Core_PseudoConstant::get('CRM_Core_DAO_Address', 'location_type_id');
+      $locationTypes = CRM_Core_PseudoConstant::get('CRM_Core_DAO_Address', 'location_type_id', array(), 'validate');
       // CRM-8108 remove ts around Billing location type
       //$this->_bltID = array_search( ts('Billing'),  $locationTypes );
       $this->_bltID = array_search('Billing', $locationTypes);
@@ -400,18 +403,16 @@ class CRM_Event_Form_Participant extends CRM_Contact_Form_Task {
     }
 
     // when fee amount is included in form
-    if (CRM_Utils_Array::value('hidden_feeblock', $_POST)
-      || CRM_Utils_Array::value('send_receipt', $_POST)
-    ) {
+    if (!empty($_POST['hidden_feeblock']) || !empty($_POST['send_receipt'])) {
       CRM_Event_Form_EventFees::preProcess($this);
       CRM_Event_Form_EventFees::buildQuickForm($this);
       CRM_Event_Form_EventFees::setDefaultValues($this);
     }
 
     // when custom data is included in this page
-    if (CRM_Utils_Array::value('hidden_custom', $_POST)) {
+    if (!empty($_POST['hidden_custom'])) {
       //custom data of type participant role
-      if (CRM_Utils_Array::value('role_id', $_POST)) {
+      if (!empty($_POST['role_id'])) {
         foreach ($_POST['role_id'] as $k => $val) {
           $roleID = $val;
           CRM_Custom_Form_CustomData::preProcess($this, $this->_roleCustomDataTypeID, $k, 1, 'Participant', $this->_id);
@@ -505,7 +506,7 @@ SELECT civicrm_custom_group.name as name,
    *
    * @access public
    *
-   * @return None
+   * @return void
    */
   public function setDefaultValues() {
     if ($this->_showFeeBlock) {
@@ -547,7 +548,7 @@ SELECT civicrm_custom_group.name as name,
       }
 
       // Get registered_by contact ID and display_name if participant was registered by someone else (CRM-4859)
-      if (CRM_Utils_Array::value('participant_registered_by_id', $defaults[$this->_id])) {
+      if (!empty($defaults[$this->_id]['participant_registered_by_id'])) {
         $registered_by_contact_id = CRM_Core_DAO::getFieldValue('CRM_Event_DAO_Participant',
           $defaults[$this->_id]['participant_registered_by_id'],
           'contact_id', 'id'
@@ -571,12 +572,13 @@ SELECT civicrm_custom_group.name as name,
     if ($this->_action == CRM_Core_Action::ADD) {
       $statuses = array_flip($this->_participantStatuses);
       $defaults[$this->_id]['status_id'] = CRM_Utils_Array::value(ts('Registered'), $statuses);
-      if (CRM_Utils_Array::value('event_id', $defaults[$this->_id])) {
+      if (!empty($defaults[$this->_id]['event_id'])) {
         $contributionTypeId = CRM_Core_DAO::getFieldValue('CRM_Event_DAO_Event',
           $defaults[$this->_id]['event_id'],
-                                                                    'financial_type_id' );
+          'financial_type_id' 
+        );
         if ($contributionTypeId) {
-                    $defaults[$this->_id]['financial_type_id'] = $contributionTypeId;
+          $defaults[$this->_id]['financial_type_id'] = $contributionTypeId;
         }
       }
 
@@ -596,7 +598,7 @@ SELECT civicrm_custom_group.name as name,
       }
 
       $submittedRole = $this->getElementValue('role_id');
-      if (CRM_Utils_Array::value(0, $submittedRole)) {
+      if (!empty($submittedRole[0])) {
         $roleID = $submittedRole[0];
       }
       $submittedEvent = $this->getElementValue('event_id');
@@ -631,7 +633,7 @@ SELECT civicrm_custom_group.name as name,
 
     //assign event and role id, this is needed for Custom data building
     $sep = CRM_Core_DAO::VALUE_SEPARATOR;
-    if (CRM_Utils_Array::value('participant_role_id', $defaults[$this->_id])) {
+    if (!empty($defaults[$this->_id]['participant_role_id'])) {
       $roleIDs = explode($sep, $defaults[$this->_id]['participant_role_id']);
     }
     if (isset($roleIDs)) {
@@ -660,10 +662,15 @@ SELECT civicrm_custom_group.name as name,
   /**
    * Function to build the form
    *
-   * @return None
+   * @return void
    * @access public
    */
   public function buildQuickForm() {
+    CRM_Core_Resources::singleton()->addScriptFile('civicrm', 'js/crm.livePage.js');
+    $participantStatuses = CRM_Event_PseudoConstant::participantStatus();
+    $partiallyPaidStatusId = array_search('Partially paid', $participantStatuses);
+    CRM_Core_Resources::singleton()->addSetting(array('partiallyPaidStatusId' => $partiallyPaidStatusId));
+
     if ($this->_showFeeBlock) {
       return CRM_Event_Form_EventFees::buildQuickForm($this);
     }
@@ -751,13 +758,14 @@ SELECT civicrm_custom_group.name as name,
     if ( $this->_eID ) {
       $eventEndDate = CRM_Core_DAO::getFieldValue('CRM_Event_DAO_Event', $this->_eID,'end_date');
     }
-    $this->assign('past', FALSE);
+    $this->assign('past', 0);
     if ($this->_action & CRM_Core_Action::UPDATE) {
-      $events = CRM_Event_BAO_Event::getEvents(TRUE, FALSE, FALSE);
+      $events = CRM_Event_BAO_Event::getEvents(1, FALSE, FALSE);
     }
     elseif ($this->getElementValue('past_event') || (isset($eventEndDate) && (CRM_Utils_Date::currentDBDate() > CRM_Utils_Date::processDate($eventEndDate)))) {
-      $events = CRM_Event_BAO_Event::getEvents(TRUE);
-      $this->assign('past', TRUE);
+      $pastval = $this->getElementValue('past_event');
+      $events = CRM_Event_BAO_Event::getEvents($pastval);
+      $this->assign('past', $pastval);
     }
     else {
       $events = CRM_Event_BAO_Event::getEvents();
@@ -811,7 +819,7 @@ WHERE      civicrm_event.is_template IS NULL OR civicrm_event.is_template = 0";
     // but we do the same for the onChange element and this form is complex
     // and i did not want to break it late in the 3.2 cycle
     $preloadJSSnippet = NULL;
-    if (CRM_Utils_Array::value('reset', $_GET) && $this->_eID) {
+    if (!empty($_GET['reset']) && $this->_eID) {
       $preloadJSSnippet = "
 cj(function() {
 cj('#event_id').val( '{$this->_eID}' );
@@ -902,12 +910,7 @@ loadCampaign( {$this->_eID}, {$eventCampaigns} );
     $this->assign('notificationStatusIds', $notificationStatusIds);
 
     $this->_participantStatuses = CRM_Event_PseudoConstant::participantStatus(NULL, NULL, 'label');
-    $this->add('select', 'status_id', ts('Participant Status'),
-      array(
-        '' => ts('- select -')) + $this->_participantStatuses,
-      TRUE,
-      $checkCancelledJs
-    );
+    $this->addSelect('status_id', $checkCancelledJs, TRUE);
 
     $this->addElement('checkbox', 'is_notify', ts('Send Notification'), NULL);
 
@@ -923,7 +926,11 @@ loadCampaign( {$this->_eID}, {$eventCampaigns} );
     );
 
     $path = CRM_Utils_System::currentPath();
-    if (strpos($path, 'civicrm/contact/search') !== 0) {
+    $excludeForPaths = array(
+      'civicrm/contact/search',
+      'civicrm/group/search'
+    );
+    if (!in_array($path, $excludeForPaths)) {
       $buttons[] = array(
         'type' => 'upload',
         'name' => ts('Save and New'),
@@ -931,6 +938,7 @@ loadCampaign( {$this->_eID}, {$eventCampaigns} );
         'js' => $confirmJS,
       );
     }
+
     $buttons[] = array(
       'type' => 'cancel',
       'name' => ts('Cancel'),
@@ -979,18 +987,22 @@ loadCampaign( {$this->_eID}, {$eventCampaigns} );
       $errorMsg['contact[1]'] = ts('Please select a contact or create new contact');
     }
 
-    if (CRM_Utils_Array::value('payment_processor_id', $values)) {
+    if (!empty($values['payment_processor_id'])) {
       // make sure that credit card number and cvv are valid
       CRM_Core_Payment_Form::validateCreditCard($values, $errorMsg);
     }
 
-    if (CRM_Utils_Array::value('record_contribution', $values) && !CRM_Utils_Array::value('financial_type_id', $values)) {
-      $errorMsg['financial_type_id'] = ts('Please enter the associated Financial Type');
+    if (!empty($values['record_contribution'])) {
+      if (empty($values['financial_type_id'])) {
+        $errorMsg['financial_type_id'] = ts('Please enter the associated Financial Type');
+      }
+      if (empty($values['payment_instrument_id'])) {
+        $errorMsg['payment_instrument_id'] = ts('Paid By is a required field.');
+      }
     }
 
     // validate contribution status for 'Failed'.
-    if ($self->_onlinePendingContributionId &&
-      CRM_Utils_Array::value('record_contribution', $values) &&
+    if ($self->_onlinePendingContributionId && !empty($values['record_contribution']) &&
       (CRM_Utils_Array::value('contribution_status_id', $values) ==
         array_search('Failed', CRM_Contribute_PseudoConstant::contributionStatus(NULL, 'name'))
       )
@@ -1000,8 +1012,7 @@ loadCampaign( {$this->_eID}, {$eventCampaigns} );
 
     // do the amount validations.
     //skip for update mode since amount is freeze, CRM-6052
-    if ((!$self->_id &&
-        !CRM_Utils_Array::value('total_amount', $values) &&
+    if ((!$self->_id && empty($values['total_amount']) &&
         empty($self->_values['line_items'])
       ) ||
       ($self->_id && !$self->_paymentId && isset($self->_values['line_items']) && is_array($self->_values['line_items']))
@@ -1042,8 +1053,9 @@ loadCampaign( {$this->_eID}, {$eventCampaigns} );
       return;
     }
 
+    $participantStatus = CRM_Event_PseudoConstant::participantStatus();
     // set the contact, when contact is selected
-    if (CRM_Utils_Array::value('contact_select_id', $params)) {
+    if (!empty($params['contact_select_id'])) {
       $this->_contactId = $params['contact_select_id'][1];
     }
     if ($this->_priceSetId && $isQuickConfig = CRM_Core_DAO::getFieldValue('CRM_Price_DAO_PriceSet', $this->_priceSetId, 'is_quick_config')) {
@@ -1085,7 +1097,7 @@ loadCampaign( {$this->_eID}, {$eventCampaigns} );
       else {
 
         //check if discount is selected
-        if (CRM_Utils_Array::value('discount_id', $params)) {
+        if (!empty($params['discount_id'])) {
           $discountId = $params['discount_id'];
         }
         else {
@@ -1110,7 +1122,7 @@ loadCampaign( {$this->_eID}, {$eventCampaigns} );
 
         $params['fee_level'] = $params['amount_level'];
         $contributionParams['total_amount'] = $params['amount'];
-        if ($this->_quickConfig && CRM_Utils_Array::value('total_amount', $params)) {
+        if ($this->_quickConfig && !empty($params['total_amount']) && $params['status_id'] != array_search('Partially paid', $participantStatus)) {
           $params['fee_amount'] = $params['total_amount'];
         } else {
           //fix for CRM-3086
@@ -1145,13 +1157,17 @@ loadCampaign( {$this->_eID}, {$eventCampaigns} );
     }
 
     $this->_params = $params;
-    unset($params['amount']);
+    $amountOwed = NULL;
+    if (isset($params['amount'])) {
+      $amountOwed = $params['amount'];
+      unset($params['amount']);
+    }
     $params['register_date'] = CRM_Utils_Date::processDate($params['register_date'], $params['register_date_time']);
     $params['receive_date'] = CRM_Utils_Date::processDate(CRM_Utils_Array::value('receive_date', $params));
     $params['contact_id'] = $this->_contactId;
 
     // overwrite actual payment amount if entered
-    if (CRM_Utils_Array::value('total_amount', $params)) {
+    if (!empty($params['total_amount'])) {
       $contributionParams['total_amount'] = CRM_Utils_Array::value('total_amount', $params);
     }
 
@@ -1285,7 +1301,7 @@ loadCampaign( {$this->_eID}, {$eventCampaigns} );
       // all the payment processors expect the name and address to be in the
       // so we copy stuff over to first_name etc.
       $paymentParams = $this->_params;
-      if (CRM_Utils_Array::value('send_receipt', $this->_params)) {
+      if (!empty($this->_params['send_receipt'])) {
         $paymentParams['email'] = $this->_contributorEmail;
       }
       CRM_Core_Payment_Form::mapParams($this->_bltID, $this->_params, $paymentParams, TRUE);
@@ -1307,7 +1323,7 @@ loadCampaign( {$this->_eID}, {$eventCampaigns} );
 
       $this->_params['receive_date'] = $now;
 
-      if (CRM_Utils_Array::value('send_receipt', $this->_params)) {
+      if (!empty($this->_params['send_receipt'])) {
         $this->_params['receipt_date'] = $now;
       }
       else {
@@ -1330,7 +1346,7 @@ loadCampaign( {$this->_eID}, {$eventCampaigns} );
 
       // add participant record
       $participants = array();
-      if (CRM_Utils_Array::value('participant_role_id', $this->_params) && is_array($this->_params['participant_role_id'])) {
+      if (!empty($this->_params['participant_role_id']) && is_array($this->_params['participant_role_id'])) {
         $this->_params['participant_role_id'] = implode(CRM_Core_DAO::VALUE_SEPARATOR,
           array_keys($this->_params['participant_role_id'])
         );
@@ -1401,8 +1417,8 @@ loadCampaign( {$this->_eID}, {$eventCampaigns} );
       }
 
       $contributions = array();
-      if (CRM_Utils_Array::value('record_contribution', $params)) {
-        if (CRM_Utils_Array::value('id', $params)) {
+      if (!empty($params['record_contribution'])) {
+        if (!empty($params['id'])) {
           if ($this->_onlinePendingContributionId) {
             $ids['contribution'] = $this->_onlinePendingContributionId;
           }
@@ -1423,7 +1439,7 @@ loadCampaign( {$this->_eID}, {$eventCampaigns} );
 
         $contributionParams['currency'] = $config->defaultCurrency;
         $contributionParams['non_deductible_amount'] = 'null';
-        $contributionParams['receipt_date'] = CRM_Utils_Array::value('send_receipt', $params) ? CRM_Utils_Array::value('receive_date', $params) : 'null';
+        $contributionParams['receipt_date'] = !empty($params['send_receipt']) ? CRM_Utils_Array::value('receive_date', $params) : 'null';
 
         $recordContribution = array( 'contact_id', 'financial_type_id',
           'payment_instrument_id', 'trxn_id',
@@ -1449,7 +1465,20 @@ loadCampaign( {$this->_eID}, {$eventCampaigns} );
         if ($contributionParams['contribution_status_id'] == CRM_Core_OptionGroup::getValue('contribution_status', 'Pending', 'name')) {
           $contributionParams['is_pay_later'] = 1;
         }
+
+        if ($params['status_id'] == array_search('Partially paid', $participantStatus)) {
+          // CRM-13964 partial_payment_total
+          if ($amountOwed > $params['total_amount']) {
+            // the owed amount
+            $contributionParams['partial_payment_total'] = $amountOwed;
+            // the actual amount paid
+            $contributionParams['partial_amount_pay'] = $params['total_amount'];
+          }
+        }
         if ($this->_single) {
+          if (empty($ids)) {
+            $ids = array();
+          }
           $contributions[] = CRM_Contribute_BAO_Contribution::create($contributionParams, $ids);
         }
         else {
@@ -1461,7 +1490,7 @@ loadCampaign( {$this->_eID}, {$eventCampaigns} );
         }
 
         //insert payment record for this participation
-        if (!$ids['contribution']) {
+        if (empty($ids['contribution'])) {
           foreach ($this->_contactIds as $num => $contactID) {
             $ppDAO = new CRM_Event_DAO_ParticipantPayment();
             $ppDAO->participant_id = $participants[$num]->id;
@@ -1474,7 +1503,7 @@ loadCampaign( {$this->_eID}, {$eventCampaigns} );
 
         // CRM-11124
         if ($this->_quickConfig) {
-          if (CRM_Utils_Array::value('amount_priceset_level_radio', $this->_params)) {
+          if (!empty($this->_params['amount_priceset_level_radio'])) {
             $feeLevel = $this->_params['amount_priceset_level_radio'];
           }
           else {
@@ -1495,7 +1524,8 @@ loadCampaign( {$this->_eID}, {$eventCampaigns} );
           if (is_array($value) && $value != 'skip') {
             foreach ($value as $lineKey => $line) {
               //10117 update the line items for participants if contribution amount is recorded
-              if ($this->_quickConfig && CRM_Utils_Array::value('total_amount', $params )) {
+              if ($this->_quickConfig && !empty($params['total_amount']) && $params['status_id'] != array_search('Partially paid', $participantStatus)
+              ) {
                 $line['unit_price'] = $line['line_total'] = $params['total_amount'];
               }
               $lineItem[$this->_priceSetId][$lineKey] = $line;
@@ -1509,9 +1539,7 @@ loadCampaign( {$this->_eID}, {$eventCampaigns} );
     $updateStatusMsg = NULL;
     //send mail when participant status changed, CRM-4326
     if ($this->_id && $this->_statusId &&
-      $this->_statusId != CRM_Utils_Array::value('status_id', $params) &&
-      CRM_Utils_Array::value('is_notify', $params)
-    ) {
+      $this->_statusId != CRM_Utils_Array::value('status_id', $params) && !empty($params['is_notify'])) {
 
       $updateStatusMsg = CRM_Event_BAO_Participant::updateStatusMessage($this->_id,
         $params['status_id'],
@@ -1521,7 +1549,7 @@ loadCampaign( {$this->_eID}, {$eventCampaigns} );
 
     $sent = array();
     $notSent = array();
-    if (CRM_Utils_Array::value('send_receipt', $params)) {
+    if (!empty($params['send_receipt'])) {
       if (array_key_exists($params['from_email_address'], $this->_fromEmails['from_email_id'])) {
         $receiptFrom = $params['from_email_address'];
       }
@@ -1587,15 +1615,15 @@ loadCampaign( {$this->_eID}, {$eventCampaigns} );
         $this->assign('checkNumber', CRM_Utils_Array::value('check_number', $params));
       }
       if ($this->_mode) {
-        if (CRM_Utils_Array::value('billing_first_name', $params)) {
+        if (!empty($params['billing_first_name'])) {
           $name = $params['billing_first_name'];
         }
 
-        if (CRM_Utils_Array::value('billing_middle_name', $params)) {
+        if (!empty($params['billing_middle_name'])) {
           $name .= " {$params['billing_middle_name']}";
         }
 
-        if (CRM_Utils_Array::value('billing_last_name', $params)) {
+        if (!empty($params['billing_last_name'])) {
           $name .= " {$params['billing_last_name']}";
         }
         $this->assign('billingName', $name);
@@ -1637,7 +1665,7 @@ loadCampaign( {$this->_eID}, {$eventCampaigns} );
 
       $participant = array(array('participant_id', '=', $participants[0]->id, 0, 0));
       // check whether its a test drive ref CRM-3075
-      if (CRM_Utils_Array::value('is_test', $this->_defaultValues)) {
+      if (!empty($this->_defaultValues['is_test'])) {
         $participant[] = array('participant_test', '=', 1, 0, 0);
       }
 
@@ -1692,6 +1720,7 @@ loadCampaign( {$this->_eID}, {$eventCampaigns} );
           'valueName' => 'event_offline_receipt',
           'contactId' => $contactID,
           'isTest' => (bool) CRM_Utils_Array::value('is_test', $this->_defaultValues),
+          'PDFFilename' => ts('confirmation').'.pdf',
         );
 
         // try to send emails only if email id is present
@@ -1704,7 +1733,7 @@ loadCampaign( {$this->_eID}, {$eventCampaigns} );
           $sendTemplateParams['bcc'] = CRM_Utils_Array::value('bcc', $this->_fromEmails);
         }
 
-        list($mailSent, $subject, $message, $html) = CRM_Core_BAO_MessageTemplates::sendTemplate($sendTemplateParams);
+        list($mailSent, $subject, $message, $html) = CRM_Core_BAO_MessageTemplate::sendTemplate($sendTemplateParams);
         if ($mailSent) {
           $sent[] = $contactID;
           foreach ($participants as $ids => $values) {
@@ -1727,7 +1756,7 @@ loadCampaign( {$this->_eID}, {$eventCampaigns} );
 
     if (($this->_action & CRM_Core_Action::UPDATE)) {
       $statusMsg = ts('Event registration information for %1 has been updated.', array(1 => $this->_contributorDisplayName));
-      if (CRM_Utils_Array::value('send_receipt', $params) && count($sent)) {
+      if (!empty($params['send_receipt']) && count($sent)) {
         $statusMsg .= ' ' . ts('A confirmation email has been sent to %1', array(1 => $this->_contributorEmail));
       }
 
@@ -1738,7 +1767,7 @@ loadCampaign( {$this->_eID}, {$eventCampaigns} );
     elseif ($this->_action & CRM_Core_Action::ADD) {
       if ($this->_single) {
         $statusMsg = ts('Event registration for %1 has been added.', array(1 => $this->_contributorDisplayName));
-        if (CRM_Utils_Array::value('send_receipt', $params) && count($sent)) {
+        if (!empty($params['send_receipt']) && count($sent)) {
           $statusMsg .= ' ' . ts('A confirmation email has been sent to %1.', array(1 => $this->_contributorEmail));
         }
       }

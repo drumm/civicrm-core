@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -42,16 +42,25 @@ class CRM_Utils_System {
   static $_callbacks = NULL;
 
   /**
+   * @var string Page title
+   */
+  static $title = '';
+
+  /**
    * Compose a new url string from the current url string
    * Used by all the framework components, specifically,
    * pager, sort and qfc
    *
    * @param string $urlVar the url variable being considered (i.e. crmPageID, crmSortID etc)
+   * @param boolean $includeReset - should we include or ignore the reset GET string (if present)
+   * @param boolean $includeForce - should we include or ignore the force GET string (if present)
+   * @param string  $path - the path to use for the new url
+   * @param string  $absolute - do we need a absolute or relative URL?
    *
    * @return string the url fragment
    * @access public
    */
-  static function makeURL($urlVar, $includeReset = FALSE, $includeForce = TRUE, $path = NULL) {
+  static function makeURL($urlVar, $includeReset = FALSE, $includeForce = TRUE, $path = NULL, $absolute = FALSE) {
     if (empty($path)) {
       $config = CRM_Core_Config::singleton();
       $path = CRM_Utils_Array::value($config->userFrameworkURLVar, $_GET);
@@ -60,9 +69,12 @@ class CRM_Utils_System {
       }
     }
 
-    return self::url($path,
-      CRM_Utils_System::getLinksUrl($urlVar, $includeReset, $includeForce)
-    );
+    return
+      self::url(
+        $path,
+        CRM_Utils_System::getLinksUrl($urlVar, $includeReset, $includeForce),
+        $absolute
+      );
   }
 
   /**
@@ -114,8 +126,14 @@ class CRM_Utils_System {
       $qs['force'] = 1;
     }
 
-    unset($qs['snippet']);
-    unset($qs['section']);
+    // Ok this is a big assumption but usually works
+    // If we are in snippet mode, retain the 'section' param, if not, get rid of it.
+    if (!empty($qs['snippet'])) {
+      unset($qs['snippet']);
+    }
+    else {
+      unset($qs['section']);
+    }
 
     if ($skipUFVar) {
       $config = CRM_Core_Config::singleton();
@@ -129,9 +147,13 @@ class CRM_Utils_System {
     }
 
     $querystring = array_merge($querystring, array_unique($arrays));
-    $querystring = array_map('htmlentities', $querystring);
 
-    return implode('&amp;', $querystring) . (!empty($querystring) ? '&amp;' : '') . $urlVar . '=';
+    $url = implode('&', $querystring);
+    if ($urlVar) {
+      $url .= (!empty($querystring) ? '&' : '') . $urlVar . '=';
+    }
+
+    return $url;
   }
 
   /**
@@ -184,6 +206,9 @@ class CRM_Utils_System {
    *                           RSS feed.
    * @param $fragment string   A fragment identifier (named anchor) to append to the link.
    *
+   * @param bool $htmlize
+   * @param bool $frontend
+   * @param bool $forceBackend
    * @return string            an HTML string containing a link to the given path.
    * @access public
    * @static
@@ -281,6 +306,7 @@ class CRM_Utils_System {
    * @static
    */
   static function setTitle($title, $pageTitle = NULL) {
+    self::$title = $title;
     $config = CRM_Core_Config::singleton();
     return $config->userSystem->setTitle($title, $pageTitle);
   }
@@ -457,10 +483,13 @@ class CRM_Utils_System {
    */
   static function mapConfigToSSL() {
     $config = CRM_Core_Config::singleton();
-    $config->userFrameworkResourceURL = str_replace('http://', 'https://',
-      $config->userFrameworkResourceURL
-    );
+    $config->userFrameworkResourceURL = str_replace('http://', 'https://', $config->userFrameworkResourceURL);
     $config->resourceBase = $config->userFrameworkResourceURL;
+
+    if (! empty($config->extensionsURL)) {
+      $config->extensionsURL = str_replace('http://', 'https://', $config->extensionsURL);
+    }
+
     return $config->userSystem->mapConfigToSSL();
   }
 
@@ -855,24 +884,24 @@ class CRM_Utils_System {
       return NULL;
     }
 
-    if (!CRM_Utils_Array::value('query', $items)) {
+    if (empty($items['query'])) {
       return $url;
     }
 
     $items['query'] = urlencode($items['query']);
 
     $url = $items['scheme'] . '://';
-    if (CRM_Utils_Array::value('user', $items)) {
+    if (!empty($items['user'])) {
       $url .= "{$items['user']}:{$items['pass']}@";
     }
 
     $url .= $items['host'];
-    if (CRM_Utils_Array::value('port', $items)) {
+    if (!empty($items['port'])) {
       $url .= ":{$items['port']}";
     }
 
     $url .= "{$items['path']}?{$items['query']}";
-    if (CRM_Utils_Array::value('fragment', $items)) {
+    if (!empty($items['fragment'])) {
       $url .= "#{$items['fragment']}";
     }
 
@@ -993,26 +1022,34 @@ class CRM_Utils_System {
   }
 
   /*
-     * Get logged in user's IP address.
-     *
-     * Get IP address from HTTP Header. If the CMS is Drupal then use the Drupal function
-     * as this also handles reverse proxies (based on proper configuration in settings.php)
-     *
-     * @return string ip address of logged in user
-     */
-
-  static function ipAddress() {
+   * Get logged in user's IP address.
+   *
+   * Get IP address from HTTP Header. If the CMS is Drupal then use the Drupal function
+   * as this also handles reverse proxies (based on proper configuration in settings.php)
+   *
+   * @return string ip address of logged in user
+   */
+  static function ipAddress($strictIPV4 = TRUE) {
     $address = CRM_Utils_Array::value('REMOTE_ADDR', $_SERVER);
 
     $config = CRM_Core_Config::singleton();
     if ($config->userSystem->is_drupal) {
       //drupal function handles the server being behind a proxy securely
-      return ip_address();
+      $address = ip_address();
     }
 
     // hack for safari
     if ($address == '::1') {
       $address = '127.0.0.1';
+    }
+
+    // when we need to have strictly IPV4 ip address
+    // convert ipV6 to ipV4
+    if ($strictIPV4) {
+      // this converts 'IPV4 mapped IPV6 address' to IPV4
+      if (filter_var($address, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) && strstr($address, '::ffff:')) {
+        $address = ltrim($address, '::ffff:');
+      }
     }
 
     return $address;

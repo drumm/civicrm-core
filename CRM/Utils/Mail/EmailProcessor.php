@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -167,7 +167,7 @@ class CRM_Utils_Mail_EmailProcessor {
       $store = CRM_Mailing_MailStore::getStore($dao->name);
     }
     catch(Exception$e) {
-      $message = ts('Could not connect to MailStore') . '<p>';
+      $message = ts('Could not connect to MailStore for ') . $dao->username . '@' . $dao->server .'<p>';
       $message .= ts('Error message: ');
       $message .= '<pre>' . $e->getMessage() . '</pre><p>';
       CRM_Core_Error::fatal($message);

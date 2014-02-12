@@ -203,7 +203,7 @@
     },
     onUfChanged: function(isUfUnsaved) {
       if (isUfUnsaved) {
-        this.$('.crm-designer-save').removeAttr('style').removeAttr('disabled');
+        this.$('.crm-designer-save').removeAttr('style').prop('disabled', false);
       }
     },
     doSave: function(event) {
@@ -290,11 +290,15 @@
     serializeData: extendedSerializeData,
     template: '#palette_template',
     el: '<div class="full-height"></div>',
+    openTreeNodes: [],
     events: {
       'keyup .crm-designer-palette-search input': 'doSearch',
+      'change .crm-contact-types': 'doSetPaletteEntity',
       'click .crm-designer-palette-clear-search': 'clearSearch',
-      'click .crm-designer-palette-refresh': 'doRefresh',
-      'click .crm-designer-palette-toggle': 'toggleAll'
+      'click .crm-designer-palette-toggle': 'toggleAll',
+      'click .crm-designer-palette-add button': 'doNewCustomFieldDialog',
+      'click #crm-designer-add-custom-set': 'doNewCustomSetDialog',
+      'dblclick .crm-designer-palette-field': 'doAddToCanvas'
     },
     initialize: function() {
       this.model.getRel('ufFieldCollection')
@@ -321,6 +325,14 @@
 
       paletteView.model.getRel('ufEntityCollection').each(function(ufEntityModel){
         _.each(ufEntityModel.getSections(), function(section, sectionKey){
+          var defaultValue = paletteView.selectedContactType;
+          if (!defaultValue) {
+            defaultValue = paletteView.model.calculateContactEntityType();
+          }
+
+          // set selected option as default, since we are rebuilding palette
+          paletteView.$('.crm-contact-types').val(defaultValue).prop('selected','selected');
+
           var entitySection = ufEntityModel.get('entity_name') + '-' + sectionKey;
           var items = [];
           if (paletteFieldsByEntitySection[entitySection]) {
@@ -329,10 +341,19 @@
             });
           }
           if (section.is_addable) {
-            items.push({data: 'placeholder', attr: {'class': 'crm-designer-palette-add', 'data-entity': ufEntityModel.get('entity_name'), 'data-section': sectionKey}});
+            items.push({data: ts('+ Add New Field'), attr: {'class': 'crm-designer-palette-add'}});
           }
           if (items.length > 0) {
-            treeData.push({data: section.title, children: items});
+            treeData.push({
+              data: section.title,
+              children: items,
+              state: _.contains(paletteView.openTreeNodes, sectionKey) ? 'open' : 'closed',
+              attr: {
+                'class': 'crm-designer-palette-section',
+                'data-section': sectionKey,
+                'data-entity': ufEntityModel.get('entity_name')
+              }
+            });
           }
         })
       });
@@ -357,26 +378,12 @@
           helper: 'clone',
           connectToSortable: '.crm-designer-fields' // FIXME: tight canvas/palette coupling
         });
-        $('.crm-designer-palette-field', this).dblclick(function(event){
-          var paletteFieldModel = paletteView.model.getRel('paletteFieldCollection').get($(event.currentTarget).attr('data-plm-cid'));
-          paletteFieldModel.addToUFCollection(paletteView.model.getRel('ufFieldCollection'));
-          event.stopPropagation();
-        });
         paletteView.model.getRel('ufFieldCollection').each(function(ufFieldModel) {
           paletteView.toggleActive(ufFieldModel, paletteView.model.getRel('ufFieldCollection'))
         });
-        paletteView.$('.crm-designer-palette-add a').remove();
-        paletteView.$('.crm-designer-palette-add').append('<button>'+ts('Add Field')+'</button>');
-        paletteView.$('.crm-designer-palette-add button').button()
-          .click(function(event){
-            var entityKey = $(event.currentTarget).closest('.crm-designer-palette-add').attr('data-entity');
-            var sectionKey = $(event.currentTarget).closest('.crm-designer-palette-add').attr('data-section');
-            var ufEntityModel = paletteView.model.getRel('ufEntityCollection').getByName(entityKey);
-            var sections = ufEntityModel.getSections();
-            paletteView.doAddField(sections[sectionKey]);
-            event.stopPropagation();
-          })
-        ;
+        paletteView.$('.crm-designer-palette-add a').replaceWith('<button>' + $('.crm-designer-palette-add a').first().text() + '</<button>');
+        paletteView.$('.crm-designer-palette-tree > ul').append('<li><button id="crm-designer-add-custom-set">+ ' + ts('Add Set of Custom Fields') + '</button></li>');
+        paletteView.$('.crm-designer-palette-tree button').button();
       }).bind("select_node.jstree", function (e, data) {
         $(this).jstree("toggle_node", data.rslt.obj);
         $(this).jstree("deselect_node", data.rslt.obj);
@@ -399,41 +406,66 @@
     doSearch: function(event) {
       $('.crm-designer-palette-tree').jstree("search", $(event.target).val());
     },
-    doAddField: function(section) {
+    doSetPaletteEntity: function(event) {
+      this.selectedContactType = $('.crm-contact-types :selected').val();
+      // loop through entity collection and remove non-valid entity section's
+      var newUfEntityModels = [];
+      this.model.getRel('ufEntityCollection').each(function(oldUfEntityModel){
+        var values = oldUfEntityModel.toJSON();
+        if (values.entity_name == 'contact_1') {
+          values.entity_type = $('.crm-contact-types :selected').val();
+        }
+        newUfEntityModels.push(new CRM.UF.UFEntityModel(values));
+      });
+      this.model.getRel('ufEntityCollection').reset(newUfEntityModels);
+    },
+    doAddToCanvas: function(event) {
+      var paletteFieldModel = this.model.getRel('paletteFieldCollection').get($(event.currentTarget).attr('data-plm-cid'));
+      paletteFieldModel.addToUFCollection(this.model.getRel('ufFieldCollection'));
+      event.stopPropagation();
+    },
+    doNewCustomFieldDialog: function(event) {
       var paletteView = this;
-      var openAddNewWindow = function() {
-        var url = CRM.url('civicrm/admin/custom/group/field/add', {
-          reset: 1,
-          action: 'add',
-          gid: section.custom_group_id
-        });
-        window.open(url, '_blank');
-      };
-
-      if (paletteView.hideAddFieldAlert) {
-        openAddNewWindow();
-      } else {
-        CRM.confirm(function() {
-            paletteView.hideAddFieldAlert = true;
-            openAddNewWindow();
-          }, {
-            title: ts('Add Field'),
-            message: ts('A new window or tab will open. Use the new window to add your field, and then return to this window and click "Refresh."')
-          }
-        );
-      }
+      var entityKey = $(event.currentTarget).closest('.crm-designer-palette-section').attr('data-entity');
+      var sectionKey = $(event.currentTarget).closest('.crm-designer-palette-section').attr('data-section');
+      var ufEntityModel = paletteView.model.getRel('ufEntityCollection').getByName(entityKey);
+      var sections = ufEntityModel.getSections();
+      var url = CRM.url('civicrm/admin/custom/group/field/add', {
+        reset: 1,
+        action: 'add',
+        gid: sections[sectionKey].custom_group_id
+      });
+      CRM.loadForm(url).on('crmFormSuccess', function(e, data) {
+        paletteView.doRefresh('custom_' + data.id);
+      });
       return false;
     },
-    doRefresh: function(event) {
+    doNewCustomSetDialog: function(event) {
+      var paletteView = this;
+      var url = CRM.url('civicrm/admin/custom/group', 'action=add&reset=1');
+      // Create custom field set and automatically go to next step (create fields) after save button is clicked.
+      CRM.loadForm(url, {refreshAction: ['next']})
+        .on('crmFormSuccess', function(e, data) {
+          // When form switches to create custom field context, modify button behavior to only continue for "save and new"
+          data.customField && ($(this).data('crmSnippet').options.crmForm.refreshAction = ['next_new']);
+          paletteView.doRefresh(data.customField ? 'custom_' + data.id : null);
+        });
+      return false;
+    },
+    doRefresh: function(fieldToAdd) {
       var ufGroupModel = this.model;
+      this.getOpenTreeNodes();
       CRM.Schema.reloadModels()
         .done(function(data){
           ufGroupModel.resetEntities();
+          if (fieldToAdd) {
+            var field = ufGroupModel.getRel('paletteFieldCollection').getFieldByName(null, fieldToAdd);
+            field.addToUFCollection(ufGroupModel.getRel('ufFieldCollection'));
+          }
         })
         .fail(function() {
           CRM.alert(ts('Failed to retrieve schema'), ts('Error'), 'error');
         });
-      return false;
     },
     clearSearch: function(event) {
       $('.crm-designer-palette-search input').val('').keyup();
@@ -443,13 +475,22 @@
       var paletteFieldCollection = this.model.getRel('paletteFieldCollection');
       var paletteFieldModel = paletteFieldCollection.getFieldByName(ufFieldModel.get('entity_name'), ufFieldModel.get('field_name'));
       var isAddable = ufFieldCollection.isAddable(ufFieldModel);
-      this.$('[data-plm-cid='+paletteFieldModel.cid+']').toggleClass('disabled', !isAddable);
+      if (paletteFieldModel) {
+        this.$('[data-plm-cid='+paletteFieldModel.cid+']').toggleClass('disabled', !isAddable);
+      }
     },
     toggleAll: function(event) {
       if ($('.crm-designer-palette-search input').val() == '') {
         $('.crm-designer-palette-tree').jstree($(event.target).attr('rel'));
       }
       return false;
+    },
+    getOpenTreeNodes: function() {
+      var paletteView = this;
+      this.openTreeNodes = [];
+      this.$('.crm-designer-palette-section.jstree-open').each(function() {
+        paletteView.openTreeNodes.push($(this).data('section'));
+      })
     }
   });
 
@@ -464,13 +505,15 @@
       this.model.getRel('ufFieldCollection')
         .on('add', this.updatePlaceholder, this)
         .on('remove', this.updatePlaceholder, this)
-        .on('add', this.addUFFieldView, this);
+        .on('add', this.addUFFieldView, this)
+        .on('reset', this.render, this);
     },
     onClose: function() {
       this.model.getRel('ufFieldCollection')
         .off('add', this.updatePlaceholder, this)
         .off('remove', this.updatePlaceholder, this)
-        .off('add', this.addUFFieldView, this);
+        .off('add', this.addUFFieldView, this)
+        .off('reset', this.render, this);
     },
     render: function() {
       var ufFieldCanvasView = this;
@@ -559,6 +602,7 @@
     },
     events: {
       "click .crm-designer-action-settings": 'doToggleForm',
+      "click button.crm-designer-edit-custom": 'doEditCustomField',
       "click .crm-designer-action-remove": 'doRemove'
     },
     modelEvents: {
@@ -595,6 +639,7 @@
       var $detail = this.detail.$el;
       if (!this.expanded) {
         $detail.toggle('blind', 250);
+        this.$('button.crm-designer-edit-custom').remove();
       }
       else {
         var $canvas = $('.crm-designer-canvas');
@@ -610,7 +655,41 @@
             }
           }
         });
+        if (this.model.get('field_name').split('_')[0] == 'custom') {
+          this.$('.crm-designer-field-summary > div').append('<button class="crm-designer-edit-custom">&raquo; ' + ts('Edit Custom Field') + '</button>');
+          this.$('button.crm-designer-edit-custom').button().attr('title', ts('Edit global settings for this custom field.'));
+        }
       }
+    },
+    doEditCustomField: function() {
+      var url = CRM.url('civicrm/admin/custom/group/field/update', {
+        action: 'update',
+        reset: 1,
+        id: this.model.get('field_name').split('_')[1]
+      });
+      var form1 = CRM.loadForm(url, {openInline: '.crm-custom-field-form-block-data_type a'})
+        .on('crmFormLoad', function() {
+          $(this).prepend('<div class="messages status"><div class="icon inform-icon"></div>' + ts('Note: This will modify the field system-wide, not just in this profile form.') + '</div>');
+          var $link = $('.action-link a', this);
+          if ($link.length) {
+            $link.detach();
+            var buttons = {};
+            buttons[$link.text()] = function() {
+              var form2 = CRM.loadForm($link.attr('href'), {
+                cancelButton: '.cancel.form-submit, #done',
+                openInline: 'a.action-item:not([href="#"])',
+                dialog: {
+                  width: '60%',
+                  height: parseInt($(window).height() * .8)
+                }
+              }).on('crmLoad', function() {
+                  $('#done', this).removeAttr('onclick');
+                });
+            }
+            $(this).dialog('option', 'buttons', buttons);
+          }
+        })
+      return false;
     },
     onChangeIsDuplicate: function(model, value, options) {
       this.$el.toggleClass('crm-designer-duplicate', value);
@@ -710,7 +789,6 @@
       this.form.commit();
       this.$('.field-is_multi_summary').toggle(this.options.fieldSchema.civiIsMultiple ? true : false);
       this.$('.field-in_selector').toggle(this.model.isInSelectorAllowed());
-      // this.$(':input').attr('disabled', this.model.get("is_reserved") == 1);
 
       if (!this.model.isInSelectorAllowed() && this.model.get('in_selector') != "0") {
         this.model.set('in_selector', "0");

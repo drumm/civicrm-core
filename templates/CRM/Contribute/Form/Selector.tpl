@@ -1,6 +1,6 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -86,20 +86,14 @@
       </tr>
   {elseif $context eq 'contribution' }
       <tr class="even-row">
-      <td colspan="8"><a href="{crmURL p='civicrm/contact/view' q="reset=1&force=1&selectedChild=contribute&cid=$contactId"}">&raquo; {ts}View all contributions from this contact{/ts}... </a></td>
+      <td colspan="8"><a href="{crmURL p='civicrm/contribute/search' q="reset=1&force=1&cid=$contactId"}">&raquo; {ts}View all contributions from this contact{/ts}... </a></td>
       </tr>
   {/if}
 {/if}
 </table>
 {/strip}
 
-{if $context EQ 'Search'}
- <script type="text/javascript">
- {* this function is called to change the color of selected row(s) *}
-    var fname = "{$form.formName}";
-    on_load_init_checkboxes(fname);
- </script>
-{/if}
+
 
 {if $context EQ 'Search'}
     {include file="CRM/common/pager.tpl" location="bottom"}

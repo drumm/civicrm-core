@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -106,9 +106,12 @@ class CRM_Campaign_Page_Petition_Confirm extends CRM_Core_Page {
     $ce->time_stamp = date('YmdHis');
     $ce->save();
 
-
-    CRM_Contact_BAO_GroupContact::updateGroupMembershipStatus($contact_id, $se->group_id,
-      'Email', $ce->id
+    CRM_Contact_BAO_GroupContact::addContactsToGroup(
+      array($contact_id),
+      $se->group_id,
+      'Email',
+      'Added',
+      $ce->id
     );
 
     $bao = new CRM_Campaign_BAO_Petition();

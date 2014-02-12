@@ -54,15 +54,21 @@
       <labelColumn>full_name</labelColumn>
       <nameColumn>numeric_code</nameColumn>
     </pseudoconstant>
+    <html>
+      <type>Select</type>
+    </html>
   </field>
   <field>
     <name>frequency_unit</name>
     <title>Frequency Unit</title>
-    <type>enum</type>
-    <values>day,week,month,year</values>
+    <type>varchar</type>
+    <length>8</length>
     <default>'month'</default>
     <comment>Time units for recurrence of payment.</comment>
     <add>1.6</add>
+    <html>
+      <type>Select</type>
+    </html>
   </field>
   <field>
     <name>frequency_interval</name>
@@ -159,6 +165,9 @@
     <default>1</default>
     <import>true</import>
     <add>1.6</add>
+    <pseudoconstant>
+      <optionGroupName>contribution_status</optionGroupName>
+    </pseudoconstant>
   </field>
   <index>
     <name>index_contribution_status</name>
@@ -184,7 +193,7 @@
   <field>
     <name>next_sched_contribution</name>
     <type>datetime</type>
-    <comment>At Groundspring this was used by the cron job which triggered payments. If we\'re not doing that but we know about payments, it might still be useful to store for display to org andor contributors.</comment>
+    <comment>At Groundspring this was used by the cron job which triggered payments. If we''re not doing that but we know about payments, it might still be useful to store for display to org andor contributors.</comment>
     <add>1.6</add>
     <drop>4.4</drop>
   </field>
@@ -257,6 +266,11 @@
     <type>int unsigned</type>
     <comment>FK to Financial Type</comment>
     <add>4.3</add>
+    <pseudoconstant>
+      <table>civicrm_financial_type</table>
+      <keyColumn>id</keyColumn>
+      <labelColumn>name</labelColumn>
+    </pseudoconstant>
   </field>
   <foreignKey>
     <name>financial_type_id</name>
@@ -273,10 +287,13 @@
     <pseudoconstant>
       <optionGroupName>payment_instrument</optionGroupName>
     </pseudoconstant>
+    <html>
+      <type>Select</type>
+    </html>
     <add>4.1</add>
   </field>
   <index>
-    <name>UI_contrib_payment_instrument_id</name>
+    <name>UI_contribution_recur_payment_instrument_id</name>
     <fieldName>payment_instrument_id</fieldName>
     <add>4.1</add>
   </index>
@@ -284,9 +301,14 @@
     <name>campaign_id</name>
     <uniqueName>contribution_campaign_id</uniqueName>
     <type>int unsigned</type>
-    <title>Campaign ID</title>
+    <title>Campaign</title>
     <import>true</import>
     <comment>The campaign for which this contribution has been triggered.</comment>
+    <pseudoconstant>
+      <table>civicrm_campaign</table>
+      <keyColumn>id</keyColumn>
+      <labelColumn>title</labelColumn>
+    </pseudoconstant>
     <add>4.1</add>
   </field>
   <foreignKey>

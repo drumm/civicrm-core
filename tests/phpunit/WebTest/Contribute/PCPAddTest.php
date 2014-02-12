@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -137,7 +137,7 @@ class WebTest_Contribute_PCPAddTest extends CiviSeleniumTestCase {
     $this->type("pcp_title", $pcpTitle);
     $this->type("pcp_intro_text", "Welcome Text $hash");
     $this->type("goal_amount", $contributionAmount);
-    $this->click("_qf_Campaign_upload-bottom");
+    $this->clickLink("_qf_Campaign_upload-bottom", '_qf_Main_upload-bottom');
 
     $this->webtestLogin();
     $this->openCiviPage("admin/pcp", "reset=1", "_qf_PCP_refresh");
@@ -193,11 +193,11 @@ class WebTest_Contribute_PCPAddTest extends CiviSeleniumTestCase {
     $this->webtestVerifyTabularData($expected);
 
     //Check for SoftCredit
-    $this->verifyText("xpath=id('PCPView')//div[@class='crm-accordion-body']/table/tbody/tr[1]/td[2]/a[text()]", preg_quote($pcpTitle));
-    $this->verifyText("xpath=id('PCPView')//div[@class='crm-accordion-body']/table/tbody/tr[2]/td[2]/a[text()]", preg_quote("{$firstName} {$lastName}"));
-
+    $softCreditor = "{$firstName} {$lastName}";
+    $this->verifyText("xpath=//table[@class='crm-info-panel crm-soft-credit-listing']/tbody/tr/td[1]", preg_quote($softCreditor), 'In line ' . __LINE__);
+  
     // Check PCP Summary Report
-    $this->openCiviPage('report/instance/15', 'reset=1');
+    $this->openCiviPage('report/instance/16', 'reset=1');
     $this->verifyText("PCP", preg_quote($pcpTitle));
     $this->verifyText("PCP", preg_quote("{$lastName}, {$firstName}"));
   }

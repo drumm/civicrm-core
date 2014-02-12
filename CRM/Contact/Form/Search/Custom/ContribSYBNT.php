@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -75,7 +75,7 @@ class CRM_Contact_Form_Search_Custom_ContribSYBNT implements CRM_Contact_Form_Se
     }
 
     foreach ($this->_dates as $name => $title) {
-      if (CRM_Utils_Array::value($name, $this->_formValues)) {
+      if (!empty($this->_formValues[$name])) {
         $this->{$name} = CRM_Utils_Date::processDate($this->_formValues[$name]);
       }
     }

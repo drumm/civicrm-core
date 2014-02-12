@@ -6,11 +6,11 @@
 function profile_get_example(){
 $params = array(
   'profile_id' => array(
-      '0' => 25,
+      '0' => 14,
       '1' => 1,
       '2' => 'Billing',
     ),
-  'contact_id' => 1,
+  'contact_id' => 2,
 );
 
 try{
@@ -37,29 +37,36 @@ function profile_get_expectedresult(){
   'version' => 3,
   'count' => 3,
   'values' => array(
-      '25' => array(
-          'first_name' => 'abc1',
-          'last_name' => 'xyz1',
-          'email-Primary' => 'abc1.xyz1@yahoo.com',
-          'phone-1-1' => '021 512 755',
-          'country-1' => '1228',
+      '14' => array(
+          'postal_code-1' => '90210',
           'state_province-1' => '1021',
+          'country-1' => '1228',
+          'phone-1-1' => '021 512 755',
+          'email-Primary' => 'abc1.xyz1@yahoo.com',
+          'last_name' => 'xyz1',
+          'first_name' => 'abc1',
+          'email-primary' => 'abc1.xyz1@yahoo.com',
         ),
       '1' => array(
           'first_name' => 'abc1',
           'last_name' => 'xyz1',
+          'street_address-1' => '5 Saint Helier St',
+          'city-1' => 'Gotham City',
+          'postal_code-1' => '90210',
           'country-1' => '1228',
           'state_province-1' => '1021',
         ),
       'Billing' => array(
           'billing_first_name' => 'abc1',
-          'billing_middle_name' => '',
+          'billing_middle_name' => 'J.',
           'billing_last_name' => 'xyz1',
-          'billing_street_address-5' => '',
-          'billing_city-5' => '',
-          'billing_state_province_id-5' => '',
-          'billing_country_id-5' => '',
+          'billing_street_address-5' => '5 Saint Helier St',
+          'billing_city-5' => 'Gotham City',
+          'billing_state_province_id-5' => '1021',
+          'billing_country_id-5' => '1228',
+          'billing_postal_code-5' => '90210',
           'billing-email-5' => 'abc1.xyz1@yahoo.com',
+          'email-5' => 'abc1.xyz1@yahoo.com',
         ),
     ),
 );

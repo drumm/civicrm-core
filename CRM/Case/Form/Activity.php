@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -70,7 +70,7 @@ class CRM_Case_Form_Activity extends CRM_Activity_Form_Activity {
   /**
    * Function to build the form
    *
-   * @return None
+   * @return void
    * @access public
    */
   function preProcess() {
@@ -115,7 +115,7 @@ class CRM_Case_Form_Activity extends CRM_Activity_Form_Activity {
       !CRM_Core_Permission::check('access all cases and activities')
     ) {
       $session = CRM_Core_Session::singleton();
-      $allCases = CRM_Case_BAO_Case::getCases(TRUE, $session->get('userID'));
+      $allCases = CRM_Case_BAO_Case::getCases(TRUE, $session->get('userID'), 'any');
       if (!array_key_exists($this->_caseId, $allCases)) {
         CRM_Core_Error::fatal(ts('You are not authorized to access this page.'));
       }
@@ -187,7 +187,7 @@ class CRM_Case_Form_Activity extends CRM_Activity_Form_Activity {
             );
             $activities = array_keys($activities);
             $activities = $activities[0];
-            $editUrl    = CRM_Utils_System::url('civicrm/case/activity',
+            $editUrl = CRM_Utils_System::url('civicrm/case/activity',
               "reset=1&cid={$this->_currentlyViewedContactId}&caseid={$this->_caseId}&action=update&id={$activities}"
             );
           }
@@ -217,7 +217,7 @@ class CRM_Case_Form_Activity extends CRM_Activity_Form_Activity {
    *
    * @access public
    *
-   * @return None
+   * @return void
    */
   function setDefaultValues() {
     $this->_defaults = parent::setDefaultValues();
@@ -262,7 +262,7 @@ class CRM_Case_Form_Activity extends CRM_Activity_Form_Activity {
 
   public function buildQuickForm() {
     $this->_fields['source_contact_id']['label'] = ts('Reported By');
-    $this->_fields['status_id']['attributes'] = array('' => ts('- select -')) + CRM_Core_PseudoConstant::activityStatus();
+    unset($this->_fields['status_id']['attributes']['required']);
 
     if ($this->_caseType) {
       $xmlProcessor = new CRM_Case_XMLProcessor_Process();
@@ -273,7 +273,8 @@ class CRM_Case_Form_Activity extends CRM_Activity_Form_Activity {
       unset($aTypes[$openCaseID]);
       asort($aTypes);
       $this->_fields['followup_activity_type_id']['attributes'] = array(
-        '' => '- select activity type -') + $aTypes;
+          '' => '- select activity type -'
+        ) + $aTypes;
     }
 
     $result = parent::buildQuickForm();
@@ -289,6 +290,8 @@ class CRM_Case_Form_Activity extends CRM_Activity_Form_Activity {
     $this->assign('urlPath', 'civicrm/case/activity');
 
     $encounterMediums = CRM_Case_PseudoConstant::encounterMedium();
+    // Fixme: what's the justification for this? It seems like it is just re-adding an option in case it is the default and disabled.
+    // Is that really a big problem?
     if ($this->_activityTypeFile == 'OpenCase') {
       $this->_encounterMedium = CRM_Core_DAO::getFieldValue('CRM_Activity_DAO_Activity', $this->_activityId,
         'medium_id'
@@ -320,7 +323,7 @@ class CRM_Case_Form_Activity extends CRM_Activity_Form_Activity {
 
       $this->addGroup($checkBoxes, 'contact_check');
       $this->addElement('checkbox', 'toggleSelect', NULL, NULL,
-        array('onclick' => "return toggleCheckboxVals('contact_check',this);")
+        array('class' => 'select-rows')
       );
       $this->assign('searchRows', $this->_relatedContacts);
     }
@@ -353,9 +356,9 @@ class CRM_Case_Form_Activity extends CRM_Activity_Form_Activity {
    *
    * @access public
    *
-   * @return None
+   * @return void
    */
-  public function postProcess() {
+  public function postProcess($params = NULL) {
     $transaction = new CRM_Core_Transaction();
 
     if ($this->_action & CRM_Core_Action::DELETE) {
@@ -388,8 +391,8 @@ class CRM_Case_Form_Activity extends CRM_Activity_Form_Activity {
     }
 
     if ($this->_action & CRM_Core_Action::RENEW) {
-      $statusMsg       = NULL;
-      $params          = array('id' => $this->_activityId);
+      $statusMsg = NULL;
+      $params = array('id' => $this->_activityId);
       $activityRestore = CRM_Activity_BAO_Activity::restoreActivity($params);
       if ($activityRestore) {
         $statusMsg = ts('The selected activity has been restored.<br />');
@@ -400,9 +403,6 @@ class CRM_Case_Form_Activity extends CRM_Activity_Form_Activity {
 
     // store the submitted values in an array
     $params = $this->controller->exportValues($this->_name);
-    if ($params['source_contact_id']) {
-      $params['source_contact_id'] = $params['source_contact_qid'];
-    }
 
     //set parent id if its edit mode
     if ($parentId = CRM_Utils_Array::value('parent_id', $this->_defaults)) {
@@ -425,7 +425,7 @@ class CRM_Case_Form_Activity extends CRM_Activity_Form_Activity {
     }
 
     // format activity custom data
-    if (CRM_Utils_Array::value('hidden_custom', $params)) {
+    if (!empty($params['hidden_custom'])) {
       if ($this->_activityId) {
         // unset custom fields-id from params since we want custom
         // fields to be saved for new activity.
@@ -458,8 +458,8 @@ class CRM_Case_Form_Activity extends CRM_Activity_Form_Activity {
       );
     }
 
-    // assigning formated value
-    if (CRM_Utils_Array::value('assignee_contact_id', $params)) {
+    // assigning formatted value
+    if (!empty($params['assignee_contact_id'])) {
       $params['assignee_contact_id'] = explode(',', $params['assignee_contact_id']);
     }
     else {
@@ -515,7 +515,7 @@ class CRM_Case_Form_Activity extends CRM_Activity_Form_Activity {
     // have been modified/created by user
     if (isset($newActParams)) {
       // set proper original_id
-      if (CRM_Utils_Array::value('original_id', $this->_defaults)) {
+      if (!empty($this->_defaults['original_id'])) {
         $newActParams['original_id'] = $this->_defaults['original_id'];
       }
       else {
@@ -540,7 +540,7 @@ class CRM_Case_Form_Activity extends CRM_Activity_Form_Activity {
 
       // copy files attached to old activity if any, to new one,
       // as long as users have not selected the 'delete attachment' option.
-      if (!CRM_Utils_Array::value('is_delete_attachment', $newActParams)) {
+      if (empty($newActParams['is_delete_attachment'])) {
         CRM_Core_BAO_File::copyEntityFile('civicrm_activity', $this->_activityId,
           'civicrm_activity', $activity->id
         );
@@ -572,16 +572,16 @@ class CRM_Case_Form_Activity extends CRM_Activity_Form_Activity {
     $caseParams = $params;
     $caseParams['id'] = $this->_caseId;
 
-    if (CRM_Utils_Array::value('case_type_id', $caseParams)) {
+    if (!empty($caseParams['case_type_id'])) {
       $caseParams['case_type_id'] = CRM_Core_DAO::VALUE_SEPARATOR . $caseParams['case_type_id'] . CRM_Core_DAO::VALUE_SEPARATOR;
     }
-    if (CRM_Utils_Array::value('case_status_id', $caseParams)) {
+    if (!empty($caseParams['case_status_id'])) {
       $caseParams['status_id'] = $caseParams['case_status_id'];
     }
 
     // unset params intended for activities only
     unset($caseParams['subject'], $caseParams['details'],
-      $caseParams['status_id'], $caseParams['custom']
+    $caseParams['status_id'], $caseParams['custom']
     );
     $case = CRM_Case_BAO_Case::create($caseParams);
 
@@ -606,8 +606,9 @@ class CRM_Case_Form_Activity extends CRM_Activity_Form_Activity {
     $activityContacts = CRM_Core_OptionGroup::values('activity_contacts', FALSE, FALSE, FALSE, NULL, 'name');
     $assigneeID = CRM_Utils_Array::key('Activity Assignees', $activityContacts);
     if (CRM_Core_BAO_Setting::getItem(CRM_Core_BAO_Setting::SYSTEM_PREFERENCES_NAME,
-        'activity_assignee_notification'
-      )) {
+      'activity_assignee_notification'
+    )
+    ) {
       $selectedContacts[] = 'assignee_contact_id';
     }
 
@@ -617,11 +618,19 @@ class CRM_Case_Form_Activity extends CRM_Activity_Form_Activity {
           $mailStatus = ts("A copy of the activity has also been sent to selected contacts(s).");
         }
         else {
-          $this->_relatedContacts = CRM_Activity_BAO_ActivityContact::getNames($activity->id, $assigneeID, TRUE, FALSE);
+          $this->_relatedContacts = CRM_Activity_BAO_ActivityAssignment::getAssigneeNames(array($activity->id), TRUE, FALSE);
           $mailStatus .= ' ' . ts("A copy of the activity has also been sent to assignee contacts(s).");
         }
+
         //build an associative array with unique email addresses.
-        foreach ($params[$val] as $id => $dnc) {
+        foreach ($params[$val] as $key => $value) {
+          if ($val == 'contact_check') {
+            $id = $key;
+          }
+          else {
+            $id = $value;
+          }
+
           if (isset($id) && array_key_exists($id, $this->_relatedContacts)) {
             //if email already exists in array then append with ', ' another role only otherwise add it to array.
             if ($contactDetails = CRM_Utils_Array::value($this->_relatedContacts[$id]['email'], $mailToContacts)) {
@@ -637,13 +646,13 @@ class CRM_Case_Form_Activity extends CRM_Activity_Form_Activity {
     }
 
     if (!CRM_Utils_array::crmIsEmptyArray($mailToContacts)) {
-      //include attachments while sendig a copy of activity.
+      //include attachments while sending a copy of activity.
       $attachments = CRM_Core_BAO_File::getEntityFile('civicrm_activity',
         $activity->id
       );
 
-      $ics = new CRM_Activity_BAO_ICalendar( $activity );
-      $ics->addAttachment( $attachments, $mailToContacts );
+      $ics = new CRM_Activity_BAO_ICalendar($activity);
+      $ics->addAttachment($attachments, $mailToContacts);
 
       $result = CRM_Case_BAO_Case::sendActivityCopy($this->_currentlyViewedContactId,
         $activity->id, $mailToContacts, $attachments, $this->_caseId
@@ -661,7 +670,7 @@ class CRM_Case_Form_Activity extends CRM_Activity_Form_Activity {
 
     // create follow up activity if needed
     $followupStatus = '';
-    if (CRM_Utils_Array::value('followup_activity_type_id', $params)) {
+    if (!empty($params['followup_activity_type_id'])) {
       $followupActivity = CRM_Activity_BAO_Activity::createFollowupActivity($activity->id, $params);
 
       if ($followupActivity) {
@@ -675,13 +684,13 @@ class CRM_Case_Form_Activity extends CRM_Activity_Form_Activity {
     }
 
     CRM_Core_Session::setStatus('', ts("'%1' activity has been %2. %3 %4",
-        array(
-          1 => $this->_activityTypeName,
-          2 => $recordStatus,
-          3 => $followupStatus,
-          4 => $mailStatus
-        )
-      ), 'info');
+      array(
+        1 => $this->_activityTypeName,
+        2 => $recordStatus,
+        3 => $followupStatus,
+        4 => $mailStatus
+      )
+    ), 'info');
   }
 }
 

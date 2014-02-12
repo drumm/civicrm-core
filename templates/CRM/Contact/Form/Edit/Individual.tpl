@@ -1,6 +1,6 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -86,18 +86,30 @@ cj(function($) {
       {$form.prefix_id.html}
     </td>    
     {/if}
+    {if $form.formal_title}
+    <td>
+      {$form.formal_title.label}<br/>
+      {$form.formal_title.html}
+    </td>
+    {/if}
+    {if $form.first_name}
     <td>
       {$form.first_name.label}<br /> 
       {$form.first_name.html}
     </td>
+    {/if}
+    {if $form.middle_name}
     <td>
       {$form.middle_name.label}<br />
       {$form.middle_name.html}
     </td>
+    {/if}
+    {if $form.last_name}
     <td>
       {$form.last_name.label}<br />
       {$form.last_name.html}
     </td>
+    {/if}
     {if $form.suffix_id}
     <td>
       {$form.suffix_id.label}<br/>

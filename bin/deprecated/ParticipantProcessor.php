@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -107,7 +107,7 @@ LEFT JOIN  civicrm_event event ON ( event.id = participant.event_id )
       foreach ($participantDetails as $participantId => $values) {
         //process the additional participant at the time of
         //primary participant, don't process separately.
-        if (CRM_Utils_Array::value('registered_by_id', $values)) {
+        if (!empty($values['registered_by_id'])) {
           continue;
         }
 
@@ -156,7 +156,7 @@ LEFT JOIN  civicrm_event event ON ( event.id = participant.event_id )
       foreach ($participantDetails as $participantId => $values) {
         //process the additional participant at the time of
         //primary participant, don't process separately.
-        if (CRM_Utils_Array::value('registered_by_id', $values)) {
+        if (!empty($values['registered_by_id'])) {
           continue;
         }
 

@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -82,9 +82,14 @@ class CRM_Case_Form_Case extends CRM_Core_Form {
   public $_action;
 
   /**
+   * case type id
+   */
+  public $_caseTypeId = NULL;
+
+  /**
    * Function to build the form
    *
-   * @return None
+   * @return void
    * @access public
    */
   function preProcess() {
@@ -188,7 +193,7 @@ class CRM_Case_Form_Case extends CRM_Core_Form {
     $activityGroupTree = $this->_groupTree;
 
     // for case custom fields to populate with defaults
-    if (CRM_Utils_Array::value('hidden_custom', $_POST)) {
+    if (!empty($_POST['hidden_custom'])) {
       CRM_Custom_Form_CustomData::preProcess($this);
       CRM_Custom_Form_CustomData::buildQuickForm($this);
     }
@@ -204,7 +209,7 @@ class CRM_Case_Form_Case extends CRM_Core_Form {
    *
    * @access public
    *
-   * @return None
+   * @return void
    */
   function setDefaultValues() {
     if ($this->_action & CRM_Core_Action::DELETE || $this->_action & CRM_Core_Action::RENEW || $this->_cdType) {
@@ -264,13 +269,13 @@ class CRM_Case_Form_Case extends CRM_Core_Form {
     $tags = CRM_Core_BAO_Tag::getTags('civicrm_case');
     if (!empty($tags)) {
       $this->add('select', 'tag', ts('Select Tags'), $tags, FALSE,
-        array('id' => 'tags', 'multiple' => 'multiple', 'title' => ts('- select -'))
+        array('id' => 'tags', 'multiple' => 'multiple', 'class' => 'crm-select2')
       );
     }
 
     // build tag widget
     $parentNames = CRM_Core_BAO_Tag::getTagSet('civicrm_case');
-    CRM_Core_Form_Tag::buildQuickForm($this, $parentNames, 'civicrm_case', NULL, FALSE, TRUE);
+    CRM_Core_Form_Tag::buildQuickForm($this, $parentNames, 'civicrm_case', NULL, TRUE, TRUE);
 
     $this->addButtons(array(
         array(
@@ -324,7 +329,7 @@ class CRM_Case_Form_Case extends CRM_Core_Form {
    *
    * @access public
    *
-   * @return None
+   * @return void
    */
   public function postProcess() {
     $transaction = new CRM_Core_Transaction();
@@ -365,8 +370,7 @@ class CRM_Case_Form_Case extends CRM_Core_Form {
       $className::beginPostProcess($this, $params );
     }
 
-    if (
-      CRM_Utils_Array::value('hidden_custom', $params) &&
+    if (!empty($params['hidden_custom']) &&
       !isset($params['custom'])
     ) {
       $customFields = array();
@@ -379,7 +383,7 @@ class CRM_Case_Form_Case extends CRM_Core_Form {
     }
 
     // 2. create/edit case
-    if (CRM_Utils_Array::value('case_type_id', $params)) {
+    if (!empty($params['case_type_id'])) {
       $caseType = CRM_Case_PseudoConstant::caseType('name');
       $params['case_type'] = $caseType[$params['case_type_id']];
       $params['subject'] = $params['activity_subject'];
@@ -413,7 +417,7 @@ class CRM_Case_Form_Case extends CRM_Core_Form {
     $session->pushUserContext($url);
 
     // 3. format activity custom data
-    if (CRM_Utils_Array::value('hidden_custom', $params)) {
+    if (!empty($params['hidden_custom'])) {
       $customFields = CRM_Core_BAO_CustomField::getFields('Activity', FALSE, FALSE, $this->_activityTypeId);
       $customFields = CRM_Utils_Array::crmArrayMerge($customFields,
         CRM_Core_BAO_CustomField::getFields('Activity', FALSE, FALSE,

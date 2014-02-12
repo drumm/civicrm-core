@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -59,7 +59,7 @@ class CRM_Contact_BAO_Contact_Utils {
       $params = array('name' => $contactType);
       CRM_Contact_BAO_ContactType::retrieve($params, $typeInfo);
 
-      if (CRM_Utils_Array::value('image_URL', $typeInfo)) {
+      if (!empty($typeInfo['image_URL'])) {
         $imageUrl = $typeInfo['image_URL'];
         $config = CRM_Core_Config::singleton();
 
@@ -731,6 +731,7 @@ LEFT JOIN  civicrm_email ce ON ( ce.contact_id=c.id AND ce.is_primary = 1 )
     }
     elseif ($componentName == 'Activity') {
       $compTable = 'civicrm_activity';
+      $activityContacts = CRM_Core_OptionGroup::values('activity_contacts', FALSE, FALSE, FALSE, NULL, 'name');
     }
     else {
       $compTable = 'civicrm_participant';
@@ -743,8 +744,11 @@ LEFT JOIN  civicrm_email ce ON ( ce.contact_id=c.id AND ce.is_primary = 1 )
       switch ($property) {
         case 'sort_name':
           if ($componentName == 'Activity') {
-            $select[] = "contact_source.$property as $property";
-            $from[$value] = "INNER JOIN civicrm_contact contact ON ( contact.id = $compTable.source_contact_id )";
+            $sourceID = CRM_Utils_Array::key('Activity Source', $activityContacts);
+            $select[] = "contact.$property as $property";
+            $from[$value] = "
+INNER JOIN civicrm_activity_contact acs ON (acs.activity_id = {$compTable}.id AND acs.record_type_id = {$sourceID})
+INNER JOIN civicrm_contact contact ON ( contact.id = acs.contact_id )";
           }
           else {
             $select[] = "$property as $property";
@@ -753,12 +757,11 @@ LEFT JOIN  civicrm_email ce ON ( ce.contact_id=c.id AND ce.is_primary = 1 )
           break;
 
         case 'target_sort_name':
+          $targetID = CRM_Utils_Array::key('Activity Targets', $activityContacts);
           $select[] = "contact_target.sort_name as $property";
           $from[$value] = "
-INNER JOIN civicrm_contact contact_source ON ( contact_source.id = $compTable.source_contact_id )
-LEFT JOIN civicrm_activity_contact ON (civicrm_activity_contact.activity_id = $compTable.id)
-LEFT JOIN civicrm_contact as contact_target ON ( contact_target.id = civicrm_activity_contact.contact_id )
-";
+INNER JOIN civicrm_activity_contact act ON (act.activity_id = {$compTable}.id AND act.record_type_id = {$targetID})
+INNER JOIN civicrm_contact contact_target ON ( contact_target.id = act.contact_id )";
           break;
 
         case 'email':
@@ -845,9 +848,7 @@ Group By  componentId";
     $skipFields = array('is_primary', 'location_type_id', 'is_billing', 'master_id');
     foreach ($address as & $values) {
       // 2. check if master id exists, if not continue
-      if (!CRM_Utils_Array::value('master_id', $values) ||
-        !CRM_Utils_Array::value('use_shared_address', $values)
-      ) {
+      if (empty($values['master_id']) || empty($values['use_shared_address'])) {
         // we should unset master id when use uncheck share address for existing address
         $values['master_id'] = 'null';
         continue;
@@ -886,7 +887,7 @@ Group By  componentId";
     // get the list of master id's for address
     $masterAddressIds = array();
     foreach ($addresses as $key => $addressValue) {
-      if (CRM_Utils_Array::value('master_id', $addressValue)) {
+      if (!empty($addressValue['master_id'])) {
         $masterAddressIds[] = $addressValue['master_id'];
       }
     }
@@ -986,8 +987,12 @@ Group By  componentId";
         $sql = "SELECT DISTINCT id, $idFldName FROM civicrm_contact WHERE contact_type = %1 ";
       }
       else {
-        $sql = "SELECT DISTINCT id, $idFldName FROM civicrm_contact WHERE contact_type = %1
-                     AND ( {$idFldName} IS NULL OR ( {$idFldName} IS NOT NULL AND {$displayFldName} IS NULL ) ) ";
+        $sql = "
+          SELECT DISTINCT id, $idFldName
+          FROM civicrm_contact
+          WHERE contact_type = %1
+          AND ({$idFldName} IS NULL
+          OR ( {$idFldName} IS NOT NULL AND ({$displayFldName} IS NULL OR {$displayFldName} = '')) )";
       }
 
       $dao = CRM_Core_DAO::executeQuery($sql, array(1 => array($contactType, 'String')));
@@ -1035,7 +1040,7 @@ Group By  componentId";
         }
       }
 
-      CRM_Utils_Token::replaceGreetingTokens($greetingString, $contactDetails, $contactID, 'CRM_UpdateGreeting');
+      self::processGreetingTemplate($greetingString, $contactDetails, $contactID, 'CRM_UpdateGreeting');
       $greetingString = CRM_Core_DAO::escapeString($greetingString);
       $cacheFieldQuery .= " WHEN {$contactID} THEN '{$greetingString}' ";
 
@@ -1088,6 +1093,32 @@ WHERE id IN (" . implode(',', $contactIds) . ")";
     if (!empty($id)) {
       return current($id);
     }
+  }
+
+  /**
+   * Process a greeting template string to produce the individualised greeting text.
+   *
+   * This works just like message templates for mailings:
+   * the template is processed with the token substitution mechanism,
+   * to supply the individual contact data;
+   * and it is also processed with Smarty,
+   * to allow for conditionals etc. based on the contact data.
+   *
+   * Note: We don't pass any variables to Smarty --
+   * all variable data is inserted into the input string
+   * by the token substitution mechanism,
+   * before Smarty is invoked.
+   *
+   * @param string $templateString the greeting template string with contact tokens + Smarty syntax
+   *
+   * @return void
+   * @static
+   */
+  static function processGreetingTemplate(&$templateString, $contactDetails, $contactID, $className) {
+    CRM_Utils_Token::replaceGreetingTokens($templateString, $contactDetails, $contactID, $className, TRUE);
+
+    $smarty = CRM_Core_Smarty::singleton();
+    $templateString = $smarty->fetch("string:$templateString");
   }
 }
 

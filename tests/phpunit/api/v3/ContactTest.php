@@ -46,7 +46,7 @@ class api_v3_ContactTest extends CiviUnitTestCase {
   protected $_apiversion;
   protected $_entity;
   protected $_params;
-  public $_eNoticeCompliant = TRUE;
+
   protected $_contactID;
   protected $_financialTypeId =1;
 
@@ -87,6 +87,7 @@ class api_v3_ContactTest extends CiviUnitTestCase {
       'civicrm_website',
       'civicrm_relationship',
       'civicrm_uf_match',
+      'civicrm_phone',
     );
 
     $this->quickCleanup($tablesToTruncate, TRUE);
@@ -253,9 +254,10 @@ class api_v3_ContactTest extends CiviUnitTestCase {
 
     $contact = $this->callAPISuccess('contact', 'create', $params);
     $result = $this->callAPISuccess('contact', 'getsingle', array('id' => $contact['id']));
+
     $this->assertArrayKeyExists('prefix_id', $result);
-    $this->assertArrayKeyExists('gender_id', $result);
     $this->assertArrayKeyExists('suffix_id', $result);
+    $this->assertArrayKeyExists('gender_id', $result);
     $this->assertEquals(4, $result['prefix_id']);
     $this->assertEquals(1, $result['suffix_id']);
   }
@@ -276,12 +278,12 @@ class api_v3_ContactTest extends CiviUnitTestCase {
 
     $contact = $this->callAPISuccess('contact', 'create', $params);
     $result = $this->callAPISuccess('contact', 'getsingle', array('id' => $contact['id']));
+
     $this->assertArrayKeyExists('prefix_id', $result);
-    $this->assertArrayKeyExists('gender_id', $result);
     $this->assertArrayKeyExists('suffix_id', $result);
+    $this->assertArrayKeyExists('gender_id', $result);
     $this->assertEquals(4, $result['prefix_id']);
     $this->assertEquals(1, $result['suffix_id']);
-    $this->assertEquals(2, $result['gender_id']);
   }
 
   /**
@@ -368,6 +370,10 @@ class api_v3_ContactTest extends CiviUnitTestCase {
     $employerResult = $this->callAPISuccess('contact', 'create', array_merge($this->_params, array(
       'current_employer' => 'new employer org',)
     ));
+    // do it again as an update to check it doesn't cause an error
+    $employerResult = $this->callAPISuccess('contact', 'create', array_merge($this->_params, array(
+        'current_employer' => 'new employer org', 'id' => $employerResult['id'])
+    ));
     $expectedCount = 1;
     $count = $this->callAPISuccess('contact', 'getcount', array(
       'organization_name' => 'new employer org',
@@ -381,6 +387,47 @@ class api_v3_ContactTest extends CiviUnitTestCase {
 
     $this->assertEquals('new employer org', $result['current_employer']);
 
+  }
+  /*
+   * Test creating a current employer through API
+   * - check it will re-activate a de-activated employer
+  */
+  function testContactCreateDuplicateCurrentEmployerEnables(){
+    //set up  - create employer relationship
+    $employerResult = $this->callAPISuccess('contact', 'create', array_merge($this->_params, array(
+        'current_employer' => 'new employer org',)
+    ));
+    $relationship = $this->callAPISuccess('relationship','get', array(
+      'contact_id_a' => $employerResult['id'],
+   ));
+
+    //disable & check it is disabled
+    $this->callAPISuccess('relationship', 'create', array('id' => $relationship['id'], 'is_active' => 0));
+    $relationship = $this->callAPISuccess('relationship','getvalue', array(
+      'id' => $relationship['id'],
+      'return' => 'is_active'
+    ), 0);
+
+    //re-set the current employer - thus enabling the relationshp
+    $employerResult = $this->callAPISuccess('contact', 'create', array_merge($this->_params, array(
+        'current_employer' => 'new employer org', 'id' => $employerResult['id'])
+    ));
+    //check is_active is now 1
+   $relationship = $this->callAPISuccess('relationship','getsingle', array(
+     'return' => 'is_active',));
+   $this->assertEquals(1, $relationship['is_active']);
+  }
+
+  /**
+   * Check deceased contacts are not retrieved
+   * Note at time of writing the default is to return default. This should possibly be changed & test added
+   *
+   */
+  function testGetDeceasedRetrieved() {
+    $c1 = $this->callAPISuccess($this->_entity, 'create', $this->_params);
+    $c2 = $this->callAPISuccess($this->_entity, 'create', array('first_name' => 'bb', 'last_name' => 'ccc', 'contact_type' => 'Individual', 'is_deceased' => 1));
+    $result = $this->callAPISuccess($this->_entity, 'get', array('is_deceased' => 0));
+    $this->assertFalse(array_key_exists($c2['id'], $result['values']));
   }
 
   /*
@@ -407,6 +454,21 @@ class api_v3_ContactTest extends CiviUnitTestCase {
 
     $this->callAPISuccess($this->_entity, 'delete', array('id' => $c1['id']));
     $this->callAPISuccess($this->_entity, 'delete', array('id' => $c2['id']));
+  }
+  /*
+   * Test that we can retrieve contacts using
+   * 'id' => array('IN' => array('3,4')) syntax
+  */
+  function testGetINIDArray() {
+    $c1 = $this->callAPISuccess($this->_entity, 'create', $this->_params);
+    $c2 = $this->callAPISuccess($this->_entity, 'create', array('first_name' => 'bb', 'last_name' => 'ccc', 'contact_type' => 'Individual'));
+    $c3 = $this->callAPISuccess($this->_entity, 'create', array('first_name' => 'hh', 'last_name' => 'll', 'contact_type' => 'Individual'));
+    $result = $this->callAPISuccess($this->_entity, 'get', array('id' => array('IN' => array($c1['id'], $c3['id']))));
+    $this->assertEquals(2, $result['count']);
+    $this->assertEquals(array($c1['id'], $c3['id']), array_keys($result['values']));
+    $this->callAPISuccess($this->_entity, 'delete', array('id' => $c1['id']));
+    $this->callAPISuccess($this->_entity, 'delete', array('id' => $c2['id']));
+    $this->callAPISuccess($this->_entity, 'delete', array('id' => $c3['id']));
   }
   /*
    * Test variants on deleted behaviour
@@ -516,13 +578,25 @@ class api_v3_ContactTest extends CiviUnitTestCase {
     $params = array('return' => 'custom_' . $ids['custom_field_id'], 'id' => $result['id']);
     $check = $this->callAPIAndDocument($this->_entity, 'get', $params, __FUNCTION__, __FILE__, $description, $subfile);
 
-    $this->assertEquals("custom string", $check['values'][$check['id']]['custom_' . $ids['custom_field_id']], ' in line ' . __LINE__);
+    $this->assertEquals("custom string", $check['values'][$check['id']]['custom_' . $ids['custom_field_id']]);
     $this->customFieldDelete($ids['custom_field_id']);
     $this->customGroupDelete($ids['custom_group_id']);
   }
 
+  /**
+   * Check that address name is returned if required
+   */
+  function testGetReturnAddressName () {
+    $contactID = $this->individualCreate();
+    $this->callAPISuccess('address', 'create', array('contact_id' => $contactID, 'address_name' => 'My house', 'location_type_id' => 'Home', 'street_address' => '1 my road'));
+    $result = $this->callAPISuccessGetSingle('contact', array('return' => 'address_name, street_address', 'id' => $contactID));
+    $this->assertEquals('1 my road', $result['street_address']);
+    $this->assertEquals('My house', $result['address_name']);
+
+  }
+
   function testGetGroupIDFromContact() {
-    $groupId     = $this->groupCreate(NULL);
+    $groupId     = $this->groupCreate();
     $description = "Get all from group and display contacts";
     $subfile     = "GroupFilterUsingContactAPI";
     $params      = array(
@@ -821,7 +895,7 @@ class api_v3_ContactTest extends CiviUnitTestCase {
       'home_url' => 'http://www.example.org',
 
     );
-    $getResult = $this->callAPISuccess('Contact', 'Get', array());
+
     $result    = $this->callAPISuccess('Contact', 'Update', $params);
     $getResult = $this->callAPISuccess('Contact', 'Get', $params);
     unset($params['contact_id']);
@@ -896,15 +970,14 @@ class api_v3_ContactTest extends CiviUnitTestCase {
 
     $result = $this->callAPISuccess('Contact', 'Update', $params);
 
-    //  Check updated civicrm_contact against expected
-    $expected = new PHPUnit_Extensions_Database_DataSet_XMLDataSet(
-      dirname(__FILE__) . '/dataset/contact_hld_upd.xml'
+    $expected = array(
+      'contact_type' => 'Household',
+      'is_opt_out' => 0,
+      'sort_name' => 'ABC household',
+      'display_name' => 'ABC household',
+      'nick_name' => 'ABC House',
     );
-    $actual = new PHPUnit_Extensions_Database_DataSet_QueryDataset(
-      $this->_dbconn
-    );
-    $actual->addTable('civicrm_contact');
-    $expected->matches($actual);
+    $this->getAndCheck($expected, $result['id'], 'contact');
   }
 
   /**
@@ -1024,20 +1097,14 @@ class api_v3_ContactTest extends CiviUnitTestCase {
    *  Test civicrm_contact_get() with default return properties
    */
   public function testContactGetRetDefault() {
-    //  Insert a row in civicrm_contact creating contact 17
-    $op = new PHPUnit_Extensions_Database_Operation_Insert();
-    $op->execute($this->_dbconn,
-      new PHPUnit_Extensions_Database_DataSet_XMLDataSet(
-        dirname(__FILE__) . '/dataset/contact_17.xml'
-      )
-    );
+    $contactID = $this->individualCreate();
     $params = array(
-      'contact_id' => 17,
+      'contact_id' => $contactID,
       'sort' => 'first_name',
     );
     $result = $this->callAPISuccess('contact', 'get', $params);
-    $this->assertEquals(17, $result['values'][17]['contact_id'], "In line " . __LINE__);
-    $this->assertEquals('Test', $result['values'][17]['first_name'], "In line " . __LINE__);
+    $this->assertEquals($contactID, $result['values'][$contactID]['contact_id']);
+    $this->assertEquals('Anthony', $result['values'][$contactID]['first_name']);
   }
 
   /**
@@ -1176,6 +1243,49 @@ class api_v3_ContactTest extends CiviUnitTestCase {
     $this->assertEquals('testGetByUsername', $result['values'][$cid]['first_name']);
   }
 
+  /**
+   * Test to check return works OK
+   */
+  function testContactGetReturnValues() {
+    $extraParams = array('nick_name' => 'Bob', 'phone' => '456', 'email' => 'e@mail.com');
+    $contactID = $this->individualCreate($extraParams);
+    //actually it turns out the above doesn't create a phone
+    $phones = $this->callAPISuccess('phone', 'create', array('contact_id' => $contactID, 'phone' => '456',));
+    $result = $this->callAPISuccess('contact', 'getsingle', array('id' => $contactID));
+    foreach ($extraParams as $key => $value) {
+      $this->assertEquals($result[$key], $value);
+    }
+    //now we check they are still returned with 'return' key
+    $result = $this->callAPISuccess('contact', 'getsingle', array('id' => $contactID, 'return' => array_keys($extraParams)));
+    foreach ($extraParams as $key => $value) {
+      $this->assertEquals($result[$key], $value);
+    }
+  }
+
+  function testCRM13252MultipleChainedPhones() {
+    $contactID = $this->householdCreate();
+    $this->callAPISuccessGetCount('phone', array('contact_id' => $contactID), 0);
+    $params = array(
+     'contact_id' => $contactID,
+     'household_name' => 'Household 1',
+     'contact_type' => 'Household',
+     'api.phone.create' => array(
+        0 => array(
+          'phone' => '111-111-1111',
+          'location_type_id' => 1,
+          'phone_type_id' => 1,
+        ),
+        1 => array(
+          'phone' => '222-222-2222',
+          'location_type_id' => 1,
+          'phone_type_id' => 2,
+        )
+      )
+    );
+    $result = $this->callAPISuccess('contact', 'create', $params);
+    $this->callAPISuccessGetCount('phone', array('contact_id' => $contactID), 2);
+
+  }
   /**
    * Test for Contact.get id=@user:username (with an invalid username)
    */
@@ -1329,7 +1439,7 @@ class api_v3_ContactTest extends CiviUnitTestCase {
     $ids = $this->entityCustomGroupWithSingleFieldCreate(__FUNCTION__, __FILE__);
     $params['custom_' . $ids['custom_field_id']] = "custom string";
     $moreids = $this->CustomGroupMultipleCreateWithFields();
-    $andmoreids = $this->CustomGroupMultipleCreateWithFields(array('title' => "another group"));
+    $andmoreids = $this->CustomGroupMultipleCreateWithFields(array('title' => "another group", 'name' => 'another name'));
     $description = "/*this demonstrates the usage of chained api functions. A variety of techniques are used";
     $subfile = "APIChainedArrayMultipleCustom";
     $params = array(
@@ -1511,7 +1621,7 @@ class api_v3_ContactTest extends CiviUnitTestCase {
     $config = CRM_Core_Config::singleton();
     $config->userPermissionClass->permissions = array('access CiviCRM');
     $result = $this->callAPIFailure('contact', 'create', $params);
-    $this->assertEquals('API permission check failed for contact/create call; missing permission: add contacts.', $result['error_message'], 'lacking permissions should not be enough to create a contact');
+    $this->assertEquals('API permission check failed for contact/create call; insufficient permission: require access CiviCRM and add contacts', $result['error_message'], 'lacking permissions should not be enough to create a contact');
 
     $config->userPermissionClass->permissions = array('access CiviCRM', 'add contacts', 'import contacts');
     $result = $this->callAPISuccess('contact', 'create', $params, NULL, 'overfluous permissions should be enough to create a contact');
@@ -1525,7 +1635,7 @@ class api_v3_ContactTest extends CiviUnitTestCase {
 
     $config->userPermissionClass->permissions = array('access CiviCRM');
     $result = $this->callAPIFailure('contact', 'update', $params);
-    $this->assertEquals('API permission check failed for contact/update call; missing permission: edit all contacts.', $result['error_message'], 'lacking permissions should not be enough to update a contact');
+    $this->assertEquals('API permission check failed for contact/update call; insufficient permission: require access CiviCRM and edit all contacts', $result['error_message'], 'lacking permissions should not be enough to update a contact');
 
     $config->userPermissionClass->permissions = array('access CiviCRM', 'add contacts', 'view all contacts', 'edit all contacts', 'import contacts');
     $result = $this->callAPISuccess('contact', 'update', $params, NULL, 'overfluous permissions should be enough to update a contact');
@@ -1572,5 +1682,18 @@ class api_v3_ContactTest extends CiviUnitTestCase {
     );
     $result = $this->callAPISuccess('contact', 'proximity', $proxParams);
     $this->assertEquals(1, $result['count'], 'In line ' . __LINE__);
+  }
+
+  /**
+   * Test that Ajax API permission is suffient to access quicksearch api
+   * (note that quicksearch api is required for autocomplete & has ACL permissions applied)
+   */
+  function testQuickSearchPermission_CRM_13744() {
+    CRM_Core_Config::singleton()->userPermissionClass->permissions = array('access CiviEvent');
+    $result = $this->callAPIFailure('contact', 'getquick', array('name' => 'b', 'check_permissions' => TRUE));
+    CRM_Core_Config::singleton()->userPermissionClass->permissions = array('access CiviCRM');
+    $result = $this->callAPISuccess('contact', 'getquick', array('name' => 'b', 'check_permissions' => TRUE));
+    CRM_Core_Config::singleton()->userPermissionClass->permissions = array('access AJAX API');
+    $result = $this->callAPISuccess('contact', 'getquick', array('name' => 'b', 'check_permissions' => TRUE));
   }
 }

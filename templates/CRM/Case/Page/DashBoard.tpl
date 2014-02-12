@@ -1,6 +1,6 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -55,7 +55,7 @@
 
 <h3>
 {if $myCases}
-  {ts}Summary of Case Involvement{/ts}
+  {ts}Summary of Involvement{/ts}
 {else}
   {ts}Summary of All Cases{/ts}
 {/if}

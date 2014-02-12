@@ -2,7 +2,7 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -85,6 +85,19 @@ class CRM_Campaign_BAO_Query {
         }
       }
     }
+    // CRM-13810 Translate campaign_id to label for search builder
+    if (is_array($query->_select)) {
+      foreach($query->_select as $field => $queryString) {
+        if (substr($field, -11) == 'campaign_id') {
+          $query->_pseudoConstantsSelect[$field] = array(
+            'pseudoField' => 'campaign_id',
+            'idCol' => $field,
+            'bao' => 'CRM_Activity_BAO_Activity',
+          );
+        }
+      }
+    }
+
 
     //get survey clause in force,
     //only when we have survey id.
@@ -136,7 +149,7 @@ class CRM_Campaign_BAO_Query {
 
     $grouping = NULL;
     foreach (array_keys($query->_params) as $id) {
-      if ($query->_mode == CRM_Contact_BAO_QUERY::MODE_CONTACTS) {
+      if ($query->_mode == CRM_Contact_BAO_Query::MODE_CONTACTS) {
         $query->_useDistinct = TRUE;
       }
 
@@ -318,11 +331,11 @@ civicrm_activity_assignment.record_type_id = $assigneeID ) ";
 
     $contactTypes = CRM_Contact_BAO_ContactType::getSelectElements();
     $form->add('select', 'contact_type', ts('Contact Type(s)'), $contactTypes, FALSE,
-      array('id' => 'contact_type', 'multiple' => 'multiple', 'title' => ts('- select -'))
+      array('id' => 'contact_type', 'multiple' => 'multiple', 'class' => 'crm-select2')
     );
     $groups = CRM_Core_PseudoConstant::group();
     $form->add('select', 'group', ts('Groups'), $groups, FALSE,
-      array('id' => 'group', 'multiple' => 'multiple', 'title' => ts('- select -'))
+      array('id' => 'group', 'multiple' => 'multiple', 'class' => 'crm-select2')
     );
 
     $showInterviewer = FALSE;
@@ -349,7 +362,7 @@ civicrm_activity_assignment.record_type_id = $assigneeID ) ";
         $userId = $form->_interviewerId;
       }
       if (!$userId) {
-        $session = CRM_core_Session::singleton();
+        $session = CRM_Core_Session::singleton();
         $userId = $session->get('userID');
       }
       if ($userId) {

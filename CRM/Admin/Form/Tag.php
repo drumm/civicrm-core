@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -43,7 +43,7 @@ class CRM_Admin_Form_Tag extends CRM_Admin_Form {
   /**
    * Function to build the form
    *
-   * @return None
+   * @return void
    * @access public
    */
   public function buildQuickForm() {
@@ -140,7 +140,7 @@ class CRM_Admin_Form_Tag extends CRM_Admin_Form {
    *
    * @access public
    *
-   * @return None
+   * @return void
    */
   public function postProcess() {
     $params = $ids = array();
@@ -166,7 +166,9 @@ class CRM_Admin_Form_Tag extends CRM_Admin_Form {
 
     if ($this->_action == CRM_Core_Action::DELETE) {
       if ($this->_id > 0) {
+        $tag = civicrm_api3('tag', 'getsingle', array('id' => $this->_id));
         CRM_Core_BAO_Tag::del($this->_id);
+        CRM_Core_Session::setStatus(ts('The tag \'%1\' has been deleted.', array(1 => $tag['name'])), ts('Deleted'), 'success');
       }
     }
     else {

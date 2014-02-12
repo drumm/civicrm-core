@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -153,13 +153,16 @@ class CRM_Contact_Form_Task extends CRM_Core_Form {
       ($form->_task == CRM_Contact_Task::SAVE_SEARCH)
     ) {
       $sortByCharacter = $form->get('sortByCharacter');
-      $cacheKey        = ($sortByCharacter && $sortByCharacter != 'all') ? "{$cacheKey}_alphabet" : $cacheKey;
+      $cacheKey = ($sortByCharacter && $sortByCharacter != 'all') ? "{$cacheKey}_alphabet" : $cacheKey;
 
-      if ($form->_action == CRM_Core_Action::COPY) {
-        $allCids[$cacheKey] = $form->getContactIds( );
+      // since we don't store all contacts in prevnextcache, when user selects "all" use query to retrieve contacts
+      // rather than prevnext cache table for most of the task actions except export where we rebuild query to fetch
+      // final result set
+      if ($useTable) {
+        $allCids = CRM_Core_BAO_PrevNextCache::getSelection($cacheKey, "getall");
       }
       else {
-      $allCids         = CRM_Core_BAO_PrevNextCache::getSelection($cacheKey, "getall");
+        $allCids[$cacheKey] = $form->getContactIds();
       }
 
       $form->_contactIds = array();
@@ -216,16 +219,16 @@ class CRM_Contact_Form_Task extends CRM_Core_Form {
         }
       }
       else {
-      // fetching selected contact ids of passed cache key
-      $selectedCids = CRM_Core_BAO_PrevNextCache::getSelection($cacheKey);
-      foreach ($selectedCids[$cacheKey] as $selectedCid => $ignore) {
-        if ($useTable) {
-          $insertString[] = " ( {$selectedCid} ) ";
+        // fetching selected contact ids of passed cache key
+        $selectedCids = CRM_Core_BAO_PrevNextCache::getSelection($cacheKey);
+        foreach ($selectedCids[$cacheKey] as $selectedCid => $ignore) {
+          if ($useTable) {
+            $insertString[] = " ( {$selectedCid} ) ";
+          }
+          else {
+            $form->_contactIds[] = $selectedCid;
+          }
         }
-        else {
-          $form->_contactIds[] = $selectedCid;
-        }
-      }
       }
 
       if (!empty($insertString)) {
@@ -254,10 +257,10 @@ class CRM_Contact_Form_Task extends CRM_Core_Form {
 
 
     if (CRM_Utils_Array::value('radio_ts', self::$_searchFormValues) == 'ts_sel'
-    && ($form->_action != CRM_Core_Action::COPY) ) {
-      $params = array();
+      && ($form->_action != CRM_Core_Action::COPY)
+    ) {
       $sel = CRM_Utils_Array::value('radio_ts', self::$_searchFormValues);
-      $form->assign('searchtype',$sel);
+      $form->assign('searchtype', $sel);
       $result = CRM_Core_BAO_PrevNextCache::getSelectedContacts();
       $form->assign("value", $result);
     }
@@ -285,37 +288,33 @@ class CRM_Contact_Form_Task extends CRM_Core_Form {
     }
 
     $selectorName = $this->controller->selectorName();
-    require_once (str_replace('_', DIRECTORY_SEPARATOR, $selectorName) . '.php');
+    require_once(str_replace('_', DIRECTORY_SEPARATOR, $selectorName) . '.php');
 
     $fv = $this->get('formValues');
     $customClass = $this->get('customSearchClass');
     require_once 'CRM/Core/BAO/Mapping.php';
     $returnProperties = CRM_Core_BAO_Mapping::returnProperties(self::$_searchFormValues);
 
-    $selector   = new $selectorName(
-      $customClass, $fv, null, $returnProperties
-    );
+    $selector = new $selectorName($customClass, $fv, NULL, $returnProperties);
 
     $params = $this->get('queryParams');
 
     // fix for CRM-5165
     $sortByCharacter = $this->get('sortByCharacter');
-    if ($sortByCharacter &&
-      $sortByCharacter != 1
-    ) {
+    if ($sortByCharacter && $sortByCharacter != 1) {
       $params[] = array('sortByCharacter', '=', $sortByCharacter, 0, 0);
     }
     $queryOperator = $this->get('queryOperator');
     if (!$queryOperator) {
       $queryOperator = 'AND';
     }
-    $dao = &$selector->contactIDQuery($params, $this->_action, $sortID,
-      CRM_Utils_Array::value('display_relationship_type', $fv ),
+    $dao = $selector->contactIDQuery($params, $this->_action, $sortID,
+      CRM_Utils_Array::value('display_relationship_type', $fv),
       $queryOperator
     );
 
     $contactIds = array();
-    while( $dao->fetch()) {
+    while ($dao->fetch()) {
       $contactIds[$dao->contact_id] = $dao->contact_id;
     }
 
@@ -342,7 +341,8 @@ class CRM_Contact_Form_Task extends CRM_Core_Form {
    * @return void
    * @access public
    */
-  function addRules() {}
+  function addRules() {
+  }
 
   /**
    * Function to actually build the form
@@ -361,7 +361,9 @@ class CRM_Contact_Form_Task extends CRM_Core_Form {
    *
    * @return void
    */
-  public function postProcess() {}
+  public function postProcess() {
+  }
+
   //end of function
 
   /**
@@ -387,6 +389,75 @@ class CRM_Contact_Form_Task extends CRM_Core_Form {
         ),
       )
     );
+  }
+
+  /**
+   * replace ids of household members in $this->_contactIds with the id of their household.
+   * CRM-8338
+   *
+   * @access public
+   *
+   * @return void
+   */
+  public function mergeContactIdsByHousehold() {
+    if (empty($this->_contactIds)) {
+      return;
+    }
+
+    $contactRelationshipTypes = CRM_Contact_BAO_Relationship::getContactRelationshipType(
+      NULL,
+      NULL,
+      NULL,
+      NULL,
+      TRUE,
+      'name',
+      FALSE
+    );
+
+    // Get Head of Household & Household Member relationships
+    $relationKeyMOH = CRM_Utils_Array::key('Household Member of', $contactRelationshipTypes);
+    $relationKeyHOH = CRM_Utils_Array::key('Head of Household for', $contactRelationshipTypes);
+    $householdRelationshipTypes = array(
+      $relationKeyMOH => $contactRelationshipTypes[$relationKeyMOH],
+      $relationKeyHOH => $contactRelationshipTypes[$relationKeyHOH],
+    );
+
+    $relID = implode(',', $this->_contactIds);
+
+    foreach ($householdRelationshipTypes as $rel => $dnt) {
+      list($id, $direction) = explode('_', $rel, 2);
+      // identify the relationship direction
+      $contactA = 'contact_id_a';
+      $contactB = 'contact_id_b';
+      if ($direction == 'b_a') {
+        $contactA = 'contact_id_b';
+        $contactB = 'contact_id_a';
+      }
+
+      // Find related households.
+      $relationSelect      = "SELECT contact_household.id as household_id, {$contactA} as refContact ";
+      $relationFrom = " FROM civicrm_contact contact_household
+              INNER JOIN civicrm_relationship crel ON crel.{$contactB} = contact_household.id AND crel.relationship_type_id = {$id} ";
+
+      // Check for active relationship status only.
+      $today               = date('Ymd');
+      $relationActive      = " AND (crel.is_active = 1 AND ( crel.end_date is NULL OR crel.end_date >= {$today} ) )";
+      $relationWhere       = " WHERE contact_household.is_deleted = 0  AND crel.{$contactA} IN ( {$relID} ) {$relationActive}";
+      $relationGroupBy     = " GROUP BY crel.{$contactA}";
+      $relationQueryString = "$relationSelect $relationFrom $relationWhere $relationGroupBy";
+
+      $householdsDAO = CRM_Core_DAO::executeQuery($relationQueryString);
+      while ($householdsDAO->fetch()) {
+        // Remove contact's id from $this->_contactIds and replace with their household's id.
+        foreach (array_keys($this->_contactIds, $householdsDAO->refContact) as $idKey) {
+          unset($this->_contactIds[$idKey]);
+        }
+        if (!in_array($householdsDAO->household_id, $this->_contactIds)) {
+          $this->_contactIds[] = $householdsDAO->household_id;
+        }
+      }
+      $householdsDAO->free();
+    }
   }
 }
 

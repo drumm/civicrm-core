@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -90,6 +90,16 @@ class CRM_Price_BAO_LineItem extends CRM_Price_DAO_LineItem {
       return $lineItem;
     }
     return NULL;
+  }
+
+  static function getLineTotal($entityId, $entityTable) {
+    $sqlLineItemTotal = "SELECT SUM(li.line_total)
+FROM civicrm_line_item li
+INNER JOIN civicrm_participant_payment pp ON ( li.entity_id = pp.participant_id
+AND li.entity_table = '{$entityTable}'
+AND li.entity_id = {$entityId})";
+    $lineItemTotal = CRM_Core_DAO::singleValueQuery($sqlLineItemTotal);
+    return $lineItemTotal;
   }
 
   /**
@@ -288,7 +298,7 @@ class CRM_Price_BAO_LineItem extends CRM_Price_DAO_LineItem {
         $line['entity_id'] = $entityId;
         // if financial type is not set and if price field value is NOT NULL
         // get financial type id of price field value
-        if (CRM_Utils_Array::value('price_field_value_id', $line) && !CRM_Utils_Array::value('financial_type_id', $line)) {
+        if (!empty($line['price_field_value_id']) && empty($line['financial_type_id'])) {
           $line['financial_type_id'] = CRM_Core_DAO::getFieldValue('CRM_Price_DAO_PriceFieldValue', $line['price_field_value_id'], 'financial_type_id');
         }
         $lineItems = CRM_Price_BAO_LineItem::create($line);
@@ -381,11 +391,11 @@ class CRM_Price_BAO_LineItem extends CRM_Price_DAO_LineItem {
       foreach ($entityId as $id) {
         $lineItems = CRM_Price_BAO_LineItem::getLineItems($id, $entityTable);
         foreach ($lineItems as $key => $values) {
-          if (!$setID) {
+          if (!$setID && $values['price_field_id']) {
             $setID = CRM_Core_DAO::getFieldValue('CRM_Price_DAO_PriceField', $values['price_field_id'], 'price_set_id');
             $params['is_quick_config'] = CRM_Core_DAO::getFieldValue('CRM_Price_DAO_PriceSet', $setID, 'is_quick_config');
           }
-          if (CRM_Utils_Array::value('is_quick_config', $params) && array_key_exists('total_amount', $params)
+          if (!empty($params['is_quick_config']) && array_key_exists('total_amount', $params)
             && $totalEntityId == 1) {
             $values['line_total'] = $values['unit_price'] = $params['total_amount'];
           }

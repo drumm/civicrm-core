@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -196,7 +196,7 @@ class CRM_Activity_Page_AJAX {
 
     foreach ($caseRelationships as $key => $value) {
       //calculate roles that don't have relationships
-      if (CRM_Utils_Array::value($value['relation_type'], $caseRoles)) {
+      if (!empty($caseRoles[$value['relation_type']])) {
         //keep naming from careRoles array
         $caseRelationships[$key]['relation'] = $caseRoles[$value['relation_type']];
         unset($caseRoles[$value['relation_type']]);
@@ -332,8 +332,8 @@ class CRM_Activity_Page_AJAX {
     $mainActivity->free();
 
     /* Mark previous activity as deleted. If it was a non-case activity
-         * then just change the subject.
-         */
+     * then just change the subject.
+     */
 
     if (in_array($params['mode'], array(
       'move', 'file'))) {
@@ -345,7 +345,8 @@ class CRM_Activity_Page_AJAX {
       }
       else {
         $otherActivity->subject = ts('(Filed on case %1)', array(
-          1 => $params['caseID'])) . ' ' . $otherActivity->subject;
+            1 => $params['caseID']
+          )) . ' ' . $otherActivity->subject;
       }
       $otherActivity->activity_date_time = $actDateTime;
       $otherActivity->save();
@@ -363,6 +364,14 @@ class CRM_Activity_Page_AJAX {
     $sourceID = CRM_Utils_Array::key('Activity Source', $activityContacts);
     $assigneeID = CRM_Utils_Array::key('Activity Assignees', $activityContacts);
     $targetID = CRM_Utils_Array::key('Activity Targets', $activityContacts);
+
+    $sourceContactID = CRM_Activity_BAO_Activity::getSourceContactID($params['activityID']);
+    $src_params = array(
+      'activity_id' => $mainActivityId,
+      'contact_id' => $sourceContactID,
+      'record_type_id' => $sourceID
+    );
+    CRM_Activity_BAO_ActivityContact::create($src_params);
 
     foreach ($targetContacts as $key => $value) {
       $targ_params = array(
@@ -406,14 +415,18 @@ class CRM_Activity_Page_AJAX {
     $context = CRM_Utils_Type::escape(CRM_Utils_Array::value('context', $_GET), 'String');
 
     $sortMapper = array(
-      0 => 'activity_type', 1 => 'subject', 2 => 'source_contact_name',
-      3 => '', 4 => 'activity_date_time', 5 => 'status_id',
+      0 => 'activity_type',
+      1 => 'subject',
+      2 => 'source_contact_name',
+      3 => '',
+      4 => 'activity_date_time',
+      5 => 'status_id',
     );
 
-    $sEcho     = CRM_Utils_Type::escape($_REQUEST['sEcho'], 'Integer');
-    $offset    = isset($_REQUEST['iDisplayStart']) ? CRM_Utils_Type::escape($_REQUEST['iDisplayStart'], 'Integer') : 0;
-    $rowCount  = isset($_REQUEST['iDisplayLength']) ? CRM_Utils_Type::escape($_REQUEST['iDisplayLength'], 'Integer') : 25;
-    $sort      = isset($_REQUEST['iSortCol_0']) ? CRM_Utils_Array::value(CRM_Utils_Type::escape($_REQUEST['iSortCol_0'], 'Integer'), $sortMapper) : NULL;
+    $sEcho = CRM_Utils_Type::escape($_REQUEST['sEcho'], 'Integer');
+    $offset = isset($_REQUEST['iDisplayStart']) ? CRM_Utils_Type::escape($_REQUEST['iDisplayStart'], 'Integer') : 0;
+    $rowCount = isset($_REQUEST['iDisplayLength']) ? CRM_Utils_Type::escape($_REQUEST['iDisplayLength'], 'Integer') : 25;
+    $sort = isset($_REQUEST['iSortCol_0']) ? CRM_Utils_Array::value(CRM_Utils_Type::escape($_REQUEST['iSortCol_0'], 'Integer'), $sortMapper) : NULL;
     $sortOrder = isset($_REQUEST['sSortDir_0']) ? CRM_Utils_Type::escape($_REQUEST['sSortDir_0'], 'String') : 'asc';
 
     $params = $_POST;
@@ -434,16 +447,36 @@ class CRM_Activity_Page_AJAX {
     $session = CRM_Core_Session::singleton();
     $userID = $session->get('userID');
     if ($userID) {
-      $activityFilter =
-        array('activity_type_filter_id' => CRM_Utils_Array::value('activity_type_id', $params),
-              'activity_type_exclude_filter_id' => CRM_Utils_Array::value('activity_type_exclude_id', $params));
-              CRM_Core_BAO_Setting::setItem($activityFilter,
-                                            CRM_Core_BAO_Setting::PERSONAL_PREFERENCES_NAME,
-                                            'activity_tab_filter',
-                                            NULL,
-                                            $userID,
-                                            $userID
-                                    );
+      //flush cache before setting filter to account for global cache (memcache)
+      $domainID = CRM_Core_Config::domainID();
+      $cacheKey = CRM_Core_BAO_Setting::inCache(
+        CRM_Core_BAO_Setting::PERSONAL_PREFERENCES_NAME,
+        'activity_tab_filter',
+        NULL,
+        $userID,
+        TRUE,
+        $domainID,
+        TRUE
+      );
+      if ( $cacheKey ) {
+        CRM_Core_BAO_Setting::flushCache($cacheKey);
+      }
+
+      $activityFilter = array(
+        'activity_type_filter_id' => empty($params['activity_type_id']) ? '' :
+          CRM_Utils_Type::escape($params['activity_type_id'], 'Integer'),
+        'activity_type_exclude_filter_id' => empty($params['activity_type_exclude_id']) ? '' :
+          CRM_Utils_Type::escape($params['activity_type_exclude_id'], 'Integer'),
+      );
+
+      CRM_Core_BAO_Setting::setItem(
+        $activityFilter,
+        CRM_Core_BAO_Setting::PERSONAL_PREFERENCES_NAME,
+        'activity_tab_filter',
+        NULL,
+        $userID,
+        $userID
+      );
     }
 
     $iFilteredTotal = $iTotal = $params['total'];

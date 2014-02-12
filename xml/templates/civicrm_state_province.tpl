@@ -1,5 +1,5 @@
 -- +--------------------------------------------------------------------+
--- | CiviCRM version 4.3                                                |
+-- | CiviCRM version 4.4                                                |
 -- +--------------------------------------------------------------------+
 -- | Copyright CiviCRM LLC (c) 2004-2013                                |
 -- +--------------------------------------------------------------------+
@@ -1412,8 +1412,8 @@ INSERT INTO civicrm_state_province (id, country_id, abbreviation, name) VALUES
 (2927, 1085, "72", "Xanthi"),
 (2928, 1085, "21", "Zakynthos"),
 (2929, 1085, "69", "Agio Oros"),
-(2930, 1090, "AV", "Alta Verapez"),
-(2931, 1090, "BV", "Baja Verapez"),
+(2930, 1090, "AV", "Alta Verapaz"),
+(2931, 1090, "BV", "Baja Verapaz"),
 (2932, 1090, "CM", "Chimaltenango"),
 (2933, 1090, "CQ", "Chiquimula"),
 (2934, 1090, "PR", "El Progreso"),
@@ -1426,11 +1426,11 @@ INSERT INTO civicrm_state_province (id, country_id, abbreviation, name) VALUES
 (2941, 1090, "PE", "Peten"),
 (2942, 1090, "QZ", "Quetzaltenango"),
 (2943, 1090, "QC", "Quiche"),
-(2944, 1090, "RE", "Reta.thuleu"),
+(2944, 1090, "RE", "Retalhuleu"),
 (2945, 1090, "SA", "Sacatepequez"),
 (2946, 1090, "SM", "San Marcos"),
 (2947, 1090, "SR", "Santa Rosa"),
-(2948, 1090, "SO", "Solol6"),
+(2948, 1090, "SO", "Sololá"),
 (2949, 1090, "SU", "Suchitepequez"),
 (2950, 1090, "TO", "Totonicapan"),
 (2951, 1090, "ZA", "Zacapa"),
@@ -2338,7 +2338,7 @@ INSERT INTO civicrm_state_province (id, country_id, abbreviation, name) VALUES
 (3879, 1156, "S", "Tahoua"),
 (3880, 1156, "6", "Tillaberi"),
 (3881, 1156, "7", "Zinder"),
-(3882, 1157, "FC", "Abuja Capital Territory"),
+(3882, 1157, "FC", "Abuja Federal Capital Territory"),
 (3883, 1157, "AB", "Abia"),
 (3884, 1157, "AD", "Adamawa"),
 (3885, 1157, "AK", "Akwa Ibom"),
@@ -2407,7 +2407,7 @@ INSERT INTO civicrm_state_province (id, country_id, abbreviation, name) VALUES
 (3948, 1161, "20", "Finnmark"),
 (3949, 1161, "04", "Hedmark"),
 (3950, 1161, "12", "Hordaland"),
-(3951, 1161, "15", "Møre ag Romsdal"),
+(3951, 1161, "15", "Møre og Romsdal"),
 (3952, 1161, "18", "Nordland"),
 (3953, 1161, "17", "Nord-Trøndelag"),
 (3954, 1161, "05", "Oppland"),
@@ -3898,4 +3898,12 @@ INSERT INTO civicrm_state_province (id, country_id, abbreviation, name) VALUES
 (NULL, 1119, "064", "Naukšēnu novads"),
 (NULL, 1119, "106", "Ventspils novads"),
 (NULL, 1119, "JKB", "Jēkabpils"),
-(NULL, 1119, "VMR", "Valmiera");
+(NULL, 1119, "VMR", "Valmiera"),
+
+-- CRM-13314 Added States for Uruguay
+(NULL, 1229, "FL", "Florida"),
+(NULL, 1229, "RN", "Rio Negro"),
+(NULL, 1229, "SJ", "San Jose"),
+
+-- Added Nigeria States(CRM-14183)
+(NULL, 1157, "PL", "Plateau");

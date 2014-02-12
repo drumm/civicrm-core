@@ -1,6 +1,6 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -155,7 +155,7 @@
                 {continue}
               {/if}
               <td class="compressed {$field.data_type} {$fieldName}">
-                {if ( $field.data_type eq 'Date') or
+                {if ( $field.data_type eq 'Date' and $field.is_view eq 0) or
                 ( $fieldName eq 'thankyou_date' ) or ( $fieldName eq 'cancel_date' ) or ( $fieldName eq 'receipt_date' ) or (  $fieldName eq 'activity_date_time') }
                 {include file="CRM/common/jcalendar.tpl" elementName=$fieldName elementIndex=$voterId batchUpdate=1}
                 {elseif $fieldName|substr:0:5 eq 'phone'}
@@ -322,7 +322,7 @@ var surveyActivityIds = {/literal}{$surveyActivityIds}{literal};
   //post data to create interview.
   cj.post(dataUrl, data, function(interview) {
     if ( interview.status == 'success' ) {
-      cj("#row_"+voterId+' td.name').attr('class', 'name disabled' );
+      cj("#row_"+voterId+' td.name').attr('class', 'name survey-completed' );
       cj('#restmsg_vote_' + voterId).fadeIn("slow").fadeOut("slow");
       cj('#interview_voter_button_' + voterId).html(updateVote);
       cj('#release_voter_button_' + voterId).hide( );

@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -241,8 +241,9 @@ class WebTest_Contribute_ContributionPageAddTest extends CiviSeleniumTestCase {
     //View Contribution for separate contribution
     $this->waitForElementPresent("xpath=//div[@id='contributionSearch']//table//tbody/tr[1]/td[11]/span/a[text()='View']");
     // Open search criteria again
-    $this->click("xpath=id('Search')/x:div[2]/x:div/x:div[1]");
+    $this->click("xpath=id('Search')/div[2]/div/div[1]");
     $this->waitForElementPresent("financial_type_id");
+    $this->type("sort_name", $firstName);
     $this->select('financial_type_id',"label=Donation");
     $this->clickLink('_qf_Search_refresh', "xpath=//div[@id='contributionSearch']//table//tbody/tr[1]/td[11]/span/a[text()='View']");
 
@@ -381,10 +382,10 @@ class WebTest_Contribute_ContributionPageAddTest extends CiviSeleniumTestCase {
     $this->click('_qf_SearchContribution_refresh');
     $this->waitForPageToLoad($this->getTimeoutMsec());
     $this->isElementPresent("xpath=//table[@id='option11_wrapper']/tbody/tr/td/strong[text()='$pageTitle']");
-    $this->waitForElementPresent("xpath=//table[@id='option11']/tbody/tr/td[4]/div[@class='crm-contribution-page-configure-actions']/span[text()='Configure']");
-    $this->click("xpath=//table[@id='option11']/tbody/tr/td[4]/div[@class='crm-contribution-page-configure-actions']/span[text()='Configure']");
-    $this->waitForElementPresent("xpath=//table[@id='option11']/tbody/tr/td[4]/div[@class='crm-contribution-page-configure-actions']/span[text()='Configure']/ul[@class='panel']/li[8]/a[@title='Premiums']");
-    $this->click("xpath=//table[@id='option11']/tbody/tr/td[4]/div[@class='crm-contribution-page-configure-actions']/span[text()='Configure']/ul[@class='panel']/li[8]/a[@title='Premiums']");
+    $this->waitForElementPresent("xpath=//table[@id='option11']/tbody/tr/td[5]/div[@class='crm-contribution-page-configure-actions']/span[text()='Configure']");
+    $this->click("xpath=//table[@id='option11']/tbody/tr/td[5]/div[@class='crm-contribution-page-configure-actions']/span[text()='Configure']");
+    $this->waitForElementPresent("xpath=//table[@id='option11']/tbody/tr/td[5]/div[@class='crm-contribution-page-configure-actions']/span[text()='Configure']/ul[@class='panel']/li[8]/a[@title='Premiums']");
+    $this->click("xpath=//table[@id='option11']/tbody/tr/td[5]/div[@class='crm-contribution-page-configure-actions']/span[text()='Configure']/ul[@class='panel']/li[8]/a[@title='Premiums']");
     $this->waitForPageToLoad($this->getTimeoutMsec());
     $this->waitForElementPresent('premiums_active');
     $this->waitForElementPresent('_qf_Premium_cancel-bottom');

@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright (C) 2011 Marty Wright                                    |
  | Licensed to CiviCRM under the Academic Free License version 3.0.   |
@@ -73,14 +73,12 @@ class CRM_Admin_Page_ScheduleReminders extends CRM_Core_Page_Basic {
         ),
         CRM_Core_Action::ENABLE => array(
           'name' => ts('Enable'),
-          'extra' => 'onclick = "enableDisable( %%id%%,\'' . 'CRM_Core_BAO_ActionSchedule' . '\',\'' . 'disable-enable' . '\' );"',
-          'ref' => 'enable-action',
+          'ref' => 'crm-enable-disable',
           'title' => ts('Enable Label Format'),
         ),
         CRM_Core_Action::DISABLE => array(
           'name' => ts('Disable'),
-          'extra' => 'onclick = "enableDisable( %%id%%,\'' . 'CRM_Core_BAO_ActionSchedule' . '\',\'' . 'enable-disable' . '\' );"',
-          'ref' => 'disable-action',
+          'ref' => 'crm-enable-disable',
           'title' => ts('Disable Label Format'),
         ),
         CRM_Core_Action::DELETE => array(
@@ -130,6 +128,7 @@ class CRM_Admin_Page_ScheduleReminders extends CRM_Core_Page_Basic {
    * @static
    */
   function browse($action = NULL) {
+    CRM_Core_Resources::singleton()->addScriptFile('civicrm', 'js/crm.livePage.js');
     // Get list of configured reminders
     $reminderList = CRM_Core_BAO_ActionSchedule::getList();
 
@@ -143,7 +142,16 @@ class CRM_Admin_Page_ScheduleReminders extends CRM_Core_Page_Basic {
         else {
           $action -= CRM_Core_Action::DISABLE;
         }
-        $format['action'] = CRM_Core_Action::formLink(self::links(), $action, array('id' => $format['id']));
+        $format['action'] = CRM_Core_Action::formLink(
+          self::links(),
+          $action,
+          array('id' => $format['id']),
+          ts('more'),
+          FALSE,
+          'actionSchedule.manage.action',
+          'ActionSchedule',
+          $format['id']
+        );
       }
     }
 

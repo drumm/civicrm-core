@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -167,7 +167,12 @@ class CRM_Contribute_Page_Premium extends CRM_Core_Page_Basic {
         $action = array_sum(array_keys($this->links()));
 
         $premiums[$dao->product_id]['action'] = CRM_Core_Action::formLink(self::links(), $action,
-          array('id' => $pageID, 'pid' => $dao->id)
+          array('id' => $pageID, 'pid' => $dao->id),
+          ts('more'),
+          FALSE,
+          'premium.contributionpage.row',
+          'Premium',
+          $dao->id
         );
         //Financial Type
         if (!empty($dao->financial_type_id)) {

@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -118,7 +118,7 @@ class CRM_Activity_BAO_ActivityAssignmentTest extends CiviUnitTestCase {
    */
   function testGetAssigneeNamesOneId() {
     $activity = $this->activityCreate();
-    $assignees = CRM_Activity_BAO_ActivityAssignment::getAssigneeNames($activity['id']);
+    $assignees = CRM_Activity_BAO_ActivityAssignment::getAssigneeNames(array($activity['id']));
     $this->assertEquals(count($assignees), 1, '1 assignee names retrieved');
   }
 }

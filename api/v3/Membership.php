@@ -2,7 +2,7 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -112,11 +112,11 @@ function civicrm_api3_membership_create($params) {
   $action = CRM_Core_Action::ADD;
   // we need user id during add mode
     $ids = array ();
-    if(CRM_Utils_Array::value('contact_id', $params)) {
+    if (!empty($params['contact_id'])) {
       $ids['userId'] = $params['contact_id'];
     }
   //for edit membership id should be present
-  if (CRM_Utils_Array::value('id', $params)) {
+  if (!empty($params['id'])) {
     $ids['membership'] = $params['id'];
     $action = CRM_Core_Action::UPDATE;
   }
@@ -149,11 +149,13 @@ function _civicrm_api3_membership_create_spec(&$params) {
   $params['membership_type_id']['api.required'] = 1;
   $params['is_test']['api.default'] = 0;
   $params['membership_type_id']['api.aliases'] = array('membership_type');
+  $params['status_id']['api.aliases'] = array('membership_status');
   $params['skipStatusCal'] = array(
     'title' => 'Skip status calculation. By default this is 0 if id is not set and 1 if it is set.'
   );
   $params['num_terms'] = array(
-    'title' => 'Number of terms to add/renew. If this parameter is passed, dates will be calculated automatically. If no id is passed (new membership) and no dates are given, num_terms will be assumed to be 1.'
+    'title' => 'Number of terms to add/renew. If this parameter is passed, dates will be calculated automatically. If no id is passed (new membership) and no dates are given, num_terms will be assumed to be 1.',
+    'type' => CRM_Utils_Type::T_INT,
   );
 }
 /**
@@ -190,19 +192,57 @@ function civicrm_api3_membership_get($params) {
   }
   $activeOnly = CRM_Utils_Array::value('active_only', $params, $activeOnly);
 
-  if (CRM_Utils_Array::value('contact_id', $params)) {
-    $membershipValues = _civicrm_api3_membership_get_customv2behaviour($params, $contactID, $membershipTypeId, $activeOnly );
+  if (!empty($params['contact_id']) && !is_array($params['contact_id'])) {
+    $membershipValues = _civicrm_api3_membership_get_customv2behaviour($params, $membershipTypeId, $activeOnly );
   }
   else {
     //legacy behaviour only ever worked when contact_id passed in - use standard api function otherwise
     $membershipValues = _civicrm_api3_basic_get(_civicrm_api3_get_BAO(__FUNCTION__), $params, FALSE);
   }
 
-  if (empty($membershipValues)) {
-    // No results is NOT an error!
-    return civicrm_api3_create_success($membershipValues, $params);
+  $options = _civicrm_api3_get_options_from_params($params, TRUE,'membership','get');
+  $return = $options['return'];
+  if(empty($membershipValues) ||
+    (!empty($return)
+      && !array_key_exists('related_contact_id', $return)
+      && !array_key_exists('relationship_name', $return)
+    )
+    ) {
+    return civicrm_api3_create_success($membershipValues, $params, 'membership', 'get');
   }
 
+  $members =  _civicrm_api3_membership_relationsship_get_customv2behaviour($params, $membershipValues, $contactID );
+  return civicrm_api3_create_success($members, $params, 'membership', 'get');
+}
+
+/**
+ * When we copied apiv3 from api v2 we brought across some custom behaviours - in the case of
+ * membership a complicated return array is constructed. The original
+ * behaviour made contact_id a required field. We still need to keep this for v3 when contact_id
+ * is passed in as part of the reasonable expectation developers have that we will keep the api
+ * as stable as possible
+ *
+ * @param array $params parameters passed into get function
+ * @return array result for calling function
+ */
+function _civicrm_api3_membership_get_customv2behaviour(&$params, $membershipTypeId, $activeOnly) {
+  // get the membership for the given contact ID
+  $membershipParams = array('contact_id' => $params['contact_id']);
+  if ($membershipTypeId) {
+    $membershipParams['membership_type_id'] = $membershipTypeId;
+  }
+  $membershipValues = array();
+  CRM_Member_BAO_Membership::getValues($membershipParams, $membershipValues, $activeOnly);
+  return $membershipValues;
+}
+
+
+/**
+ * non-standard behaviour inherited from v2
+* @param array $params parameters passed into get function
+* @return array result for calling function
+*/
+function _civicrm_api3_membership_relationsship_get_customv2behaviour(&$params, $membershipValues, $contactID) {
   $relationships = array();
   foreach ($membershipValues as $membershipId => $values) {
     // populate the membership type name for the membership type id
@@ -210,7 +250,7 @@ function civicrm_api3_membership_get($params) {
 
     $membershipValues[$membershipId]['membership_name'] = $membershipType['name'];
 
-    if (CRM_Utils_Array::value('relationship_type_id', $membershipType)) {
+    if (!empty($membershipType['relationship_type_id'])) {
       $relationships[$membershipType['relationship_type_id']] = $membershipId;
     }
 
@@ -245,27 +285,5 @@ function civicrm_api3_membership_get($params) {
 
     }
   }
-
-  return civicrm_api3_create_success($members, $params, 'membership', 'get');
-}
-
-/**
- * When we copied apiv3 from api v2 we brought across some custom behaviours - in the case of
- * membership a complicated return array is constructed. The original
- * behaviour made contact_id a required field. We still need to keep this for v3 when contact_id
- * is passed in as part of the reasonable expectation developers have that we will keep the api
- * as stable as possible
- *
- * @param array $params parameters passed into get function
- * @return array result for calling function
- */
-function _civicrm_api3_membership_get_customv2behaviour(&$params, $contactID, $membershipTypeId, $activeOnly) {
-  // get the membership for the given contact ID
-  $membershipParams = array('contact_id' => $contactID);
-  if ($membershipTypeId) {
-    $membershipParams['membership_type_id'] = $membershipTypeId;
-  }
-  $membershipValues = array();
-  CRM_Member_BAO_Membership::getValues($membershipParams, $membershipValues, $activeOnly);
-  return $membershipValues;
+  return $members;
 }

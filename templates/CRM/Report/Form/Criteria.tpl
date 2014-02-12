@@ -1,6 +1,6 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -71,7 +71,7 @@
             <tr class="crm-report crm-report-criteria-groupby">
                 {foreach from=$groupByElements item=gbElem key=dnc}
                     {assign var="count" value=`$count+1`}
-                    <td width="25%" {if $form.fields.$gbElem} onClick="selectGroupByFields('{$gbElem}');"{/if}>
+                    <td width="25%" {if $form.fields.$gbElem}"{/if}>
                         {$form.group_bys[$gbElem].html}
                         {if $form.group_bys_freq[$gbElem].html}:<br>
                             &nbsp;&nbsp;{$form.group_bys_freq[$gbElem].label}&nbsp;{$form.group_bys_freq[$gbElem].html}
@@ -99,6 +99,7 @@
         <th> Column</th>
         <th> Order</th>
         <th> Section Header / Group By</th>
+        <th> Page Break</th>
         </tr>
 
   {section name=rowLoop start=1 loop=6}
@@ -112,6 +113,7 @@
         <td> {$form.order_bys.$index.column.html}</td>
         <td> {$form.order_bys.$index.order.html}</td>
         <td> {$form.order_bys.$index.section.html}</td>
+        <td> {$form.order_bys.$index.pageBreak.html}</td>
   </tr>
         {/section}
         </table>
@@ -132,13 +134,25 @@
 
             // hide and display the appropriate blocks as directed by the php code
             on_load_init_blocks( showRows, hideBlocks, '' );
+            
+            cj('input[id^="order_by_section_"]').click(disPageBreak).each(disPageBreak);
+            
+            function disPageBreak() {
+              if (!cj(this).prop('checked')) {
+                cj(this).parent('td').next('td').children('input[id^="order_by_pagebreak_"]').prop({checked: false, disabled: true});
+              }
+              else {
+                cj(this).parent('td').next('td').children('input[id^="order_by_pagebreak_"]').prop({disabled: false});
+              }
+            }
 
             function hideRow(i) {
                 showHideRow(i);
                 // clear values on hidden field, so they're not saved
                 cj('select#order_by_column_'+ i).val('');
                 cj('select#order_by_order_'+ i).val('ASC');
-                cj('input#order_by_section_'+ i).attr('checked', false);
+                cj('input#order_by_section_'+ i).prop('checked', false);
+                cj('input#order_by_pagebreak_'+ i).prop('checked', false);
             }
 
             {/literal}
@@ -254,16 +268,16 @@
             }
         }
 
-  function selectGroupByFields(id) {
-      var field = 'fields_'+ id;
-      var group = 'group_bys_'+ id;
-      var groups = document.getElementById( group ).checked;
-      if ( groups == 1 ) {
-          document.getElementById( field ).checked = true;
-      } else {
-          document.getElementById( field ).checked = false;
-      }
-  }
+    cj(document).ready(function(){
+      cj('.crm-report-criteria-groupby input:checkbox').click(function() {
+        cj('#fields_' + this.id.substr(10)).prop('checked', this.checked);
+      });
+      {/literal}{if $displayToggleGroupByFields}{literal}
+      cj('.crm-report-criteria-field input:checkbox').click(function() {
+        cj('#group_bys_' + this.id.substr(7)).prop('checked', this.checked);
+      });
+      {/literal}{/if}{literal}
+    });
     </script>
     {/literal}
 

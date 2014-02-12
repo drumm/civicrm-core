@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -92,7 +92,7 @@ class CRM_Core_BAO_CustomOption {
     $optionValues = CRM_Core_BAO_OptionValue::getOptionValuesArray($optionGroupID);
 
     foreach ($optionValues as $id => $value) {
-      if (!$inactiveNeeded && !CRM_Utils_Array::value('is_active', $value)) {
+      if (!$inactiveNeeded && empty($value['is_active'])) {
         continue;
       }
 

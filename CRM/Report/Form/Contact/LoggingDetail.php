@@ -2,7 +2,7 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -49,6 +49,9 @@ class CRM_Report_Form_Contact_LoggingDetail extends CRM_Logging_ReportDetail {
     $this->tables[] = 'civicrm_activity';
     $this->tables[] = 'civicrm_case';
 
+    // allow tables to be extended by report hook query objects
+    CRM_Report_BAO_Hook::singleton()->alterLogTables($this, $this->tables);
+
     $this->detail = 'logging/contact/detail';
     $this->summary = 'logging/contact/summary';
 
@@ -70,16 +73,6 @@ class CRM_Report_Form_Contact_LoggingDetail extends CRM_Logging_ReportDetail {
       // link back to summary report
       $this->assign('backURL', CRM_Report_Utils_Report::getNextUrl('logging/contact/summary', 'reset=1', FALSE, TRUE));
     }
-  }
-
-  protected function whoWhomWhenSql() {
-    return "
-            SELECT who.id who_id, who.display_name who_name, whom.id whom_id, whom.display_name whom_name, l.is_deleted
-            FROM `{$this->db}`.log_civicrm_contact l
-            JOIN civicrm_contact who ON (l.log_user_id = who.id)
-            JOIN civicrm_contact whom ON (l.id = whom.id)
-            WHERE log_action = 'Update' AND log_conn_id = %1 AND log_date = %2 ORDER BY log_date DESC LIMIT 1
-        ";
   }
 }
 

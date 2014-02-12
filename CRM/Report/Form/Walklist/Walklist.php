@@ -2,7 +2,7 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -137,9 +137,7 @@ class CRM_Report_Form_Walklist_Walklist extends CRM_Report_Form {
     $this->_columnHeaders = array();
     foreach ($this->_columns as $tableName => $table) {
       foreach ($table['fields'] as $fieldName => $field) {
-        if (CRM_Utils_Array::value('required', $field) ||
-          CRM_Utils_Array::value($fieldName, $this->_params['fields'])
-        ) {
+        if (!empty($field['required']) || !empty($this->_params['fields'][$fieldName])) {
           if ($tableName == 'civicrm_address') {
             $this->_addressField = TRUE;
           }

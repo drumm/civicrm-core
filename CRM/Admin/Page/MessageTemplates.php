@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -80,7 +80,7 @@ class CRM_Admin_Page_MessageTemplates extends CRM_Core_Page_Basic {
    * @return string Classname of BAO.
    */
   function getBAOName() {
-    return 'CRM_Core_BAO_MessageTemplates';
+    return 'CRM_Core_BAO_MessageTemplate';
   }
 
   /**
@@ -100,14 +100,12 @@ class CRM_Admin_Page_MessageTemplates extends CRM_Core_Page_Basic {
         ),
         CRM_Core_Action::DISABLE => array(
           'name' => ts('Disable'),
-          'extra' => 'onclick = "enableDisable( %%id%%,\'' . 'CRM_Core_BAO_MessageTemplates' . '\',\'' . 'enable-disable' . '\' );"',
-          'ref' => 'disable-action',
+          'ref' => 'crm-enable-disable',
           'title' => ts('Disable this message template'),
         ),
         CRM_Core_Action::ENABLE => array(
           'name' => ts('Enable'),
-          'extra' => 'onclick = "enableDisable( %%id%%,\'' . 'CRM_Core_BAO_MessageTemplates' . '\',\'' . 'disable-enable' . '\' );"',
-          'ref' => 'enable-action',
+          'ref' => 'crm-enable-disable',
           'title' => ts('Enable this message template'),
         ),
         CRM_Core_Action::DELETE => array(
@@ -155,7 +153,13 @@ class CRM_Admin_Page_MessageTemplates extends CRM_Core_Page_Basic {
       $values['action'] = CRM_Core_Action::formLink($links, $action, array(
         'id' => $object->id,
           'orig_id' => CRM_Utils_Array::value($object->id, $this->_revertible),
-        ));
+        ),
+        ts('more'),
+        FALSE,
+        'messageTemplate.manage.action',
+        'MessageTemplate',
+        $object->id
+      );
     }
     else {
       $action &= ~CRM_Core_Action::REVERT;
@@ -175,7 +179,7 @@ class CRM_Admin_Page_MessageTemplates extends CRM_Core_Page_Basic {
 
       $this->_revertedId = $id;
 
-      CRM_Core_BAO_MessageTemplates::revert($id);
+      CRM_Core_BAO_MessageTemplate::revert($id);
     }
 
     $this->assign('selectedChild', CRM_Utils_Request::retrieve('selectedChild', 'String', $this));
@@ -219,6 +223,7 @@ class CRM_Admin_Page_MessageTemplates extends CRM_Core_Page_Basic {
    * @access public
    */
   function browse() {
+    CRM_Core_Resources::singleton()->addScriptFile('civicrm', 'js/crm.livePage.js');
     $action = func_num_args() ? func_get_arg(0) : NULL;
     if ($this->_action & CRM_Core_Action::ADD) {
       return;
@@ -238,7 +243,7 @@ class CRM_Admin_Page_MessageTemplates extends CRM_Core_Page_Basic {
       $action -= CRM_Core_Action::ENABLE;
     }
 
-    $messageTemplate = new CRM_Core_BAO_MessageTemplates();
+    $messageTemplate = new CRM_Core_BAO_MessageTemplate();
     $messageTemplate->orderBy('msg_title' . ' asc');
 
     $userTemplates = array();

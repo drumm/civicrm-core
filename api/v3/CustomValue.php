@@ -2,7 +2,7 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -176,7 +176,7 @@ function civicrm_api3_custom_value_get($params) {
       return civicrm_api3_create_success($values, $params);
     }
     else {
-      return civicrm_api3_create_error($result['error_message']);
+      throw new API_Exception($result['error_message']);
     }
   }
   else {
@@ -194,7 +194,8 @@ function civicrm_api3_custom_value_get($params) {
         continue;
       }
       $fieldNumber = $idArray[1];
-      $info = array_pop(CRM_Core_BAO_CustomField::getNameFromID($fieldNumber));
+      $customFieldInfo = CRM_Core_BAO_CustomField::getNameFromID($fieldNumber);
+      $info = array_pop($customFieldInfo);
       // id is the index for returned results
 
       if (empty($idArray[2])) {
@@ -205,14 +206,14 @@ function civicrm_api3_custom_value_get($params) {
         $n = $idArray[2];
         $id = $fieldNumber . "." . $idArray[2];
       }
-      if (CRM_Utils_Array::value('format.field_names', $params)) {
+      if (!empty($params['format.field_names'])) {
         $id = $info['field_name'];
       }
       else {
         $id = $fieldNumber;
       }
       $values[$id]['entity_id'] = $getParams['entityID'];
-      if (CRM_Utils_Array::value('entityType', $getParams)) {
+      if (!empty($getParams['entityType'])) {
         $values[$n]['entity_table'] = $getParams['entityType'];
       }
       //set 'latest' -useful for multi fields but set for single for consistency

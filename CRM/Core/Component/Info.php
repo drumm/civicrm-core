@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -125,6 +125,16 @@ abstract class CRM_Core_Component_Info {
    *
    */
   abstract public function getInfo();
+
+  /**
+   * Get a list of entities to register via API
+   *
+   * @return array list of entities; same format as CRM_Utils_Hook::managedEntities(&$entities)
+   * @see CRM_Utils_Hook::managedEntities
+   */
+  public function getManagedEntities() {
+    return array();
+  }
 
   /**
    * Provides permissions that are used by component.

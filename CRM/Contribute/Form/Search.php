@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -57,14 +57,6 @@ class CRM_Contribute_Form_Search extends CRM_Core_Form {
    * @access protected
    */
   protected $_searchButtonName;
-
-  /**
-   * name of print button
-   *
-   * @var string
-   * @access protected
-   */
-  protected $_printButtonName;
 
   /**
    * name of action button
@@ -142,7 +134,6 @@ class CRM_Contribute_Form_Search extends CRM_Core_Form {
      * set the button names
      */
     $this->_searchButtonName = $this->getButtonName('refresh');
-    $this->_printButtonName = $this->getButtonName('next', 'print');
     $this->_actionButtonName = $this->getButtonName('next', 'action');
 
     $this->_done = FALSE;
@@ -223,9 +214,8 @@ class CRM_Contribute_Form_Search extends CRM_Core_Form {
   }
 
   function setDefaultValues() {
-    if (!CRM_Utils_Array::value('contribution_status',
-        $this->_defaults
-      )) {
+    if (empty($this->_defaults
+['contribution_status'])) {
       $this->_defaults['contribution_status'][1] = 1;
     }
     return $this->_defaults;
@@ -253,17 +243,16 @@ class CRM_Contribute_Form_Search extends CRM_Core_Form {
     // multiselect for groups
     if ($this->_group) {
       $this->add('select', 'group', ts('Groups'), $this->_group, FALSE,
-        array('id' => 'group', 'multiple' => 'multiple', 'title' => ts('- select -'))
+        array('id' => 'group', 'multiple' => 'multiple', 'class' => 'crm-select2')
       );
     }
 
     // multiselect for tags
-    require_once 'CRM/Core/BAO/Tag.php';
     $contactTags = CRM_Core_BAO_Tag::getTags();
 
     if ($contactTags) {
       $this->add('select', 'contact_tags', ts('Tags'), $contactTags, FALSE,
-        array('id' => 'contact_tags', 'multiple' => 'multiple', 'title' => ts('- select -'))
+        array('id' => 'contact_tags', 'multiple' => 'multiple', 'class' => 'crm-select2')
       );
     }
 
@@ -281,12 +270,12 @@ class CRM_Contribute_Form_Search extends CRM_Core_Form {
           'toggleSelect',
           NULL,
           NULL,
-          array('onclick' => "toggleTaskAction( true ); return toggleCheckboxVals('mark_x_',this);")
+          array('onclick' => "toggleTaskAction( true );", 'class' => 'select-rows')
         );
         foreach ($rows as $row) {
           $this->addElement('checkbox', $row['checkbox'],
             NULL, NULL,
-            array('onclick' => "toggleTaskAction( true ); return checkSelectedBox('" . $row['checkbox'] . "');")
+            array('onclick' => "toggleTaskAction( true );", 'class' => 'select-row')
           );
         }
       }
@@ -305,16 +294,9 @@ class CRM_Contribute_Form_Search extends CRM_Core_Form {
         )
       );
 
-      $this->add('submit', $this->_printButtonName, ts('Print'),
-        array(
-          'class' => 'form-submit',
-          'onclick' => "return checkPerformAction('mark_x', '" . $this->getName() . "', 1);",
-        )
-      );
-
       // need to perform tasks on all or selected items ? using radio_ts(task selection) for it
       $this->addElement('radio', 'radio_ts', NULL, '', 'ts_sel', array('checked' => 'checked'));
-      $this->addElement('radio', 'radio_ts', NULL, '', 'ts_all', array('onclick' => $this->getName() . ".toggleSelect.checked = false; toggleCheckboxVals('mark_x_',this); toggleTaskAction( true );"));
+      $this->addElement('radio', 'radio_ts', NULL, '', 'ts_all', array('class' => 'select-rows', 'onclick' => $this->getName() . ".toggleSelect.checked = false; toggleTaskAction( true );"));
     }
 
     // add buttons
@@ -371,6 +353,15 @@ class CRM_Contribute_Form_Search extends CRM_Core_Form {
     }
 
     $config = CRM_Core_Config::singleton();
+    // CRM-13848
+    $financialType = CRM_Utils_Array::value('financial_type_id', $this->_formValues);
+    if ($financialType && is_array($financialType)) {
+      unset($this->_formValues['financial_type_id']);
+      foreach($financialType as $notImportant => $typeID) {
+        $this->_formValues['financial_type_id'][$typeID] = 1;
+      }
+    }
+
     $tags = CRM_Utils_Array::value('contact_tags', $this->_formValues);
     if ($tags && !is_array($tags)) {
       unset($this->_formValues['contact_tags']);
@@ -380,7 +371,7 @@ class CRM_Contribute_Form_Search extends CRM_Core_Form {
     if ($tags && is_array($tags)) {
       unset($this->_formValues['contact_tags']);
       foreach($tags as $notImportant => $tagID) {
-          $this->_formValues['contact_tags'][$tagID] = 1;
+        $this->_formValues['contact_tags'][$tagID] = 1;
       }
     }
 
@@ -395,7 +386,7 @@ class CRM_Contribute_Form_Search extends CRM_Core_Form {
       if ($group && is_array($group)) {
         unset($this->_formValues['group']);
         foreach($group as $notImportant => $groupID) {
-            $this->_formValues['group'][$groupID] = 1;
+          $this->_formValues['group'][$groupID] = 1;
         }
       }
 
@@ -409,7 +400,7 @@ class CRM_Contribute_Form_Search extends CRM_Core_Form {
     $this->set('queryParams', $this->_queryParams);
 
     $buttonName = $this->controller->getButtonName();
-    if ($buttonName == $this->_actionButtonName || $buttonName == $this->_printButtonName) {
+    if ($buttonName == $this->_actionButtonName) {
       // check actionName and if next, then do not repeat a search, since we are going to the next page
 
       // hack, make sure we reset the task values

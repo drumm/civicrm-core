@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -148,6 +148,7 @@ class CRM_Contact_Page_DedupeRules extends CRM_Core_Page_Basic {
     $dao->orderBy('contact_type,used ASC');
     $dao->find();
 
+    $dedupeRuleTypes = CRM_Core_SelectValues::getDedupeRuleTypes();
     while ($dao->fetch()) {
       $ruleGroups[$dao->contact_type][$dao->id] = array();
       CRM_Core_DAO::storeValues($dao, $ruleGroups[$dao->contact_type][$dao->id]);
@@ -164,10 +165,19 @@ class CRM_Contact_Page_DedupeRules extends CRM_Core_Page_Basic {
         unset($links[CRM_Core_Action::DELETE]);
       }
 
-      $ruleGroups[$dao->contact_type][$dao->id]['action'] = CRM_Core_Action::formLink($links, $action, array('id' => $dao->id));
-      CRM_Dedupe_DAO_RuleGroup::addDisplayEnums($ruleGroups[$dao->contact_type][$dao->id]);
-    }
+      $ruleGroups[$dao->contact_type][$dao->id]['action'] = CRM_Core_Action::formLink(
+        $links,
+        $action,
+        array('id' => $dao->id),
+        ts('more'),
+        FALSE,
+        'dedupeRule.manage.action',
+        'DedupeRule',
+        $dao->id
+      );
 
+      $ruleGroups[$dao->contact_type][$dao->id]['used_display'] = $dedupeRuleTypes[$ruleGroups[$dao->contact_type][$dao->id]['used']];
+    }
     $this->assign('brows', $ruleGroups);
   }
 

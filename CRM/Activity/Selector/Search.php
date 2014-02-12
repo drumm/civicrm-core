@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -233,7 +233,6 @@ class CRM_Activity_Selector_Search extends CRM_Core_Selector_Base implements CRM
    * @return array  rows in the given offset and rowCount
    */
   function &getRows($action, $offset, $rowCount, $sort, $output = NULL) {
-
     $result = $this->_query->searchQuery(
       $offset, $rowCount, $sort,
       FALSE, FALSE,
@@ -320,7 +319,12 @@ class CRM_Activity_Selector_Search extends CRM_Core_Selector_Base implements CRM
           'id' => $result->activity_id,
           'cid' => $contactId,
           'cxt' => $this->_context,
-        )
+        ),
+        ts('more'),
+        FALSE,
+        'activity.selector.row',
+        'Activity',
+        $result->activity_id
       );
 
       //carry campaign to selector.
@@ -373,7 +377,7 @@ class CRM_Activity_Selector_Search extends CRM_Core_Selector_Base implements CRM
         ),
         array(
           'name' => ts('Added By'),
-          'sort' => 'sort_name',
+          'sort' => 'source_contact',
           'direction' => CRM_Utils_Sort::DONTCARE,
         ),
         array('name' => ts('With')),

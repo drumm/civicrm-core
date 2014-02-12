@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -113,7 +113,7 @@ class CRM_Contact_Import_Form_Summary extends CRM_Import_Form_Summary {
   /**
    * Clean up the import table we used
    *
-   * @return None
+   * @return void
    * @access public
    */
   public function postProcess() {

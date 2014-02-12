@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -470,7 +470,7 @@ class CRM_Core_Selector_Controller {
       return;
     }
 
-    self::$_template->assign('tplFile', $this->_object->getTemplateFileName());
+    self::$_template->assign('tplFile', $this->_object->getHookedTemplateFileName());
     if ($this->_print) {
       $content = self::$_template->fetch('CRM/common/print.tpl');
     }

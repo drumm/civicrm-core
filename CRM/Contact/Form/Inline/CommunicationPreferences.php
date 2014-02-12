@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -60,13 +60,18 @@ class CRM_Contact_Form_Inline_CommunicationPreferences extends CRM_Contact_Form_
     $defaults = parent::setDefaultValues();
 
     if (!empty($defaults['preferred_language'])) {
-      $defaults['preferred_language'] = CRM_Core_PseudoConstant::getKey('CRM_Contact_DAO_Contact', 'preferred_language', $defaults['preferred_language']);
+      $languages = CRM_Contact_BAO_Contact::buildOptions('preferred_language');
+      $defaults['preferred_language'] = CRM_Utils_Array::key($defaults['preferred_language'], $languages);
     }
 
     // CRM-7119: set preferred_language to default if unset
     if (empty($defaults['preferred_language'])) {
       $config = CRM_Core_Config::singleton();
       $defaults['preferred_language'] = $config->lcMessages;
+    }
+
+    if (empty($defaults['communication_style_id'])) {
+      $defaults['communication_style_id'] = array_pop(CRM_Core_OptionGroup::values('communication_style', TRUE, NULL, NULL, 'AND is_default = 1'));
     }
 
     foreach (CRM_Contact_BAO_Contact::$_greetingTypes as $greeting) {

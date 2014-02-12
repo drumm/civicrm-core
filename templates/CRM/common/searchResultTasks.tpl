@@ -1,6 +1,6 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -57,23 +57,32 @@
   </tr>
   <tr>
     <td colspan="2">
-    {if $printButtonName}
+    {* Note print buttons were mostly removed except for Campaign search - the following lines can be removed soon CRM-12872 *}
+    {if !empty($printButtonName)}
        {$form.$printButtonName.html} &nbsp; &nbsp;
-    {else}
+    {elseif !empty($form._qf_Search_next_print)}
        {$form._qf_Search_next_print.html} &nbsp; &nbsp;
      {/if}
-     {$form.task.html}
-    {if $actionButtonName}
-       {$form.$actionButtonName.html} &nbsp; &nbsp;
-    {else}
-     {$form._qf_Search_next_action.html}
-   {/if}
+   
+      <span id='task-section'>
+        {$form.task.html}
+        {if $actionButtonName}
+          {$form.$actionButtonName.html} &nbsp; &nbsp;
+        {else}
+          {$form._qf_Search_next_action.html}
+        {/if}
+      </span>
     </td>
   </tr>
   </table>
 </div>
 {literal}
 <script type="text/javascript">
-toggleTaskAction( );
+cj(function() {
+  toggleTaskAction( );
+  if (cj('#task option').length == 1 && !cj('#task option').val()) {
+    cj('#task-section').remove();
+  }
+});
 </script>
 {/literal}

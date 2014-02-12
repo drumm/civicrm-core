@@ -151,6 +151,8 @@
 
   <civicrm_print_label />
 
+  <civicrm_word_replacement />
+
   <civicrm_acl_cache />
 
   <civicrm_group />
@@ -250,8 +252,6 @@
   <civicrm_contribution_recur />
 
   <civicrm_financial_trxn />
-
-  <civicrm_official_receipt />
 
   <civicrm_membership />
 

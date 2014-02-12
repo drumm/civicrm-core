@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                             |
+ | CiviCRM version 4.4                                             |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -73,7 +73,7 @@ class CRM_Financial_BAO_ExportFormat {
       break;
 
       case 'iif':
-        $tplFile = $this->getTemplateFileName();
+        $tplFile = $this->getHookedTemplateFileName();
         $out = self::getTemplate()->fetch($tplFile);
         $fileName = $this->putFile($out);
         self::createActivityExport($this->_batchIds, $fileName);
@@ -160,10 +160,10 @@ class CRM_Financial_BAO_ExportFormat {
     }
     $details = '<p>' . ts('Record: ') . $values['title'] . '</p><p>' . ts('Description: ') . '</p><p>' . ts('Created By: ') . $createdBy . '</p><p>' . ts('Created Date: ') . $values['created_date'] . '</p><p>' . ts('Last Modified By: ') . $modifiedBy . '</p><p>' . ts('Payment Instrument: ') . $values['payment_instrument_id'] . '</p>';
     $subject = '';
-    if (CRM_Utils_Array::value('total', $values)) {
+    if (!empty($values['total'])) {
       $subject .= ts('Total') . '['. CRM_Utils_Money::format($values['total']) .'],';
     }
-    if (CRM_Utils_Array::value('item_count', $values)) {
+    if (!empty($values['item_count'])) {
       $subject .= ' ' . ts('Count') . '['. $values['item_count'] .'],';
     }
 

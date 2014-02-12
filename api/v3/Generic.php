@@ -40,12 +40,8 @@ function civicrm_api3_generic_getfields($apiRequest) {
   $action       = strtolower(CRM_Utils_Array::value('action', $apiRequest['params']));
   $sequential = empty($apiRequest['params']) ? 0 : 1;
   $apiOptions = CRM_Utils_Array::value('options', $apiRequest['params'], array());
-  if ($action == 'getvalue' || $action == 'getvalue' || $action == 'getcount') {
+  if (!$action || $action == 'getvalue' || $action == 'getcount') {
     $action = 'get';
-  }
-
-  if (empty($action)) {
-    $action='get';
   }
   // determines whether to use unique field names - seem comment block above
   $unique = TRUE;
@@ -113,7 +109,7 @@ function civicrm_api3_generic_getfields($apiRequest) {
   $helper = '_' . $hypApiRequest['function'] . '_spec';
   if (function_exists($helper)) {
     // alter
-    $helper($metadata);
+    $helper($metadata, $apiRequest);
   }
 
   $fieldsToResolve = (array) CRM_Utils_Array::value('get_options', $apiOptions, array());
@@ -187,7 +183,7 @@ function civicrm_api3_generic_getvalue($apiRequest) {
   }
 
   // we only take "return=" as valid options
-  if (CRM_Utils_Array::value('return', $apiRequest['params'])) {
+  if (!empty($apiRequest['params']['return'])) {
     if (!isset($result['values'][0][$apiRequest['params']['return']])) {
       return civicrm_api3_create_error("field " . $apiRequest['params']['return'] . " unset or not existing", array('invalid_field' => $apiRequest['params']['return']));
     }
@@ -228,11 +224,18 @@ function civicrm_api3_generic_getoptions($apiRequest) {
   unset($apiRequest['params']['context'], $apiRequest['params']['field']);
 
   $baoName = _civicrm_api3_get_BAO($apiRequest['entity']);
-  $options = $baoName::buildOptions($fieldName, $context, $apiRequest['params']);
+  $options = $output = $baoName::buildOptions($fieldName, $context, $apiRequest['params']);
   if ($options === FALSE) {
     return civicrm_api3_create_error("The field '{$fieldName}' has no associated option list.");
   }
-  return civicrm_api3_create_success($options);
+  // Support 'sequential' output as a non-associative array
+  if (!empty($apiRequest['params']['sequential'])) {
+    $output = array();
+    foreach ($options as $key => $val) {
+      $output[] = array('key' => $key, 'value' => $val);
+    }
+  }
+  return civicrm_api3_create_success($output, $apiRequest['params'], $apiRequest['entity'], 'getoptions');
 }
 
 /**

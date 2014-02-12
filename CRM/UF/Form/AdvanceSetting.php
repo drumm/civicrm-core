@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -39,7 +39,7 @@ class CRM_UF_Form_AdvanceSetting extends CRM_UF_Form_Group {
    *
    * @access public
    *
-   * @return None
+   * @return void
    */
   public static function buildAdvanceSetting(&$form) {
     // should mapping be enabled for this group

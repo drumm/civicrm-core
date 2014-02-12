@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -58,6 +58,12 @@ class CRM_Extension_Manager_Base implements CRM_Extension_Manager_Interface {
    * {@inheritdoc}
    */
   public function onPostInstall(CRM_Extension_Info $info) {
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function onPostPostInstall(CRM_Extension_Info $info) {
   }
 
   /**

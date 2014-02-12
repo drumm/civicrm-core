@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -66,6 +66,8 @@ class CRM_Contact_Page_View_GroupContact extends CRM_Core_Page {
     $contactSmartGroupSettings = CRM_Core_BAO_Setting::getItem(CRM_Core_BAO_Setting::SYSTEM_PREFERENCES_NAME,
       'contact_smart_group_display');
     $this->assign('contactSmartGroupSettings', $contactSmartGroupSettings);
+
+    $this->ajaxResponse['tabCount'] = count($in);
   }
 
   /**

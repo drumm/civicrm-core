@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -401,7 +401,7 @@ class CRM_Activity_Selector_Activity extends CRM_Core_Selector_Base implements C
 
       //CRM-3553
       $accessMailingReport = FALSE;
-      if (CRM_Utils_Array::value('mailingId', $row)) {
+      if (!empty($row['mailingId'])) {
         $accessMailingReport = TRUE;
       }
 
@@ -422,7 +422,12 @@ class CRM_Activity_Selector_Activity extends CRM_Core_Selector_Base implements C
             'cid' => $this->_contactId,
             'cxt' => $this->_context,
             'caseid' => CRM_Utils_Array::value('case_id', $row),
-          )
+          ),
+          ts('more'),
+          FALSE,
+          'activity.selector.action',
+          'Activity',
+          $row['activity_id']
         );
       }
 

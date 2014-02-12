@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -111,7 +111,7 @@ class CRM_Contact_Page_View_UserDashBoard extends CRM_Core_Page {
   /**
    * Function to build user dashboard
    *
-   * @return none
+   * @return void
    * @access public
    */
   function buildUserDashBoard() {
@@ -131,23 +131,26 @@ class CRM_Contact_Page_View_UserDashBoard extends CRM_Core_Page {
         continue;
       }
 
-      if (CRM_Utils_Array::value($name, $this->_userOptions) &&
+      if (!empty($this->_userOptions[$name]) &&
         (CRM_Core_Permission::access($component->name) ||
           CRM_Core_Permission::check($elem['perm'][0])
         )
       ) {
 
         $userDashboard = $component->getUserDashboardObject();
-        $dashboardElements[] = array('templatePath' => $userDashboard->getTemplateFileName(),
+        $dashboardElements[] = array(
+          'class' => 'crm-dashboard-' . strtolower($component->name),
           'sectionTitle' => $elem['title'],
+          'templatePath' => $userDashboard->getTemplateFileName(),
           'weight' => $elem['weight'],
         );
         $userDashboard->run();
       }
     }
 
-    if (CRM_Utils_Array::value('Permissioned Orgs', $this->_userOptions)) {
+    if (!empty($this->_userOptions['Permissioned Orgs'])) {
       $dashboardElements[] = array(
+        'class' => 'crm-dashboard-permissionedOrgs',
         'templatePath' => 'CRM/Contact/Page/View/Relationship.tpl',
         'sectionTitle' => ts('Your Contacts / Organizations'),
         'weight' => 40,
@@ -162,8 +165,9 @@ class CRM_Contact_Page_View_UserDashBoard extends CRM_Core_Page {
       $this->assign('currentRelationships', $currentRelationships);
     }
 
-    if (CRM_Utils_Array::value('PCP', $this->_userOptions)) {
+    if (!empty($this->_userOptions['PCP'])) {
       $dashboardElements[] = array(
+        'class' => 'crm-dashboard-pcp',
         'templatePath' => 'CRM/Contribute/Page/PcpUserDashboard.tpl',
         'sectionTitle' => ts('Personal Campaign Pages'),
         'weight' => 40,
@@ -173,9 +177,10 @@ class CRM_Contact_Page_View_UserDashBoard extends CRM_Core_Page {
       $this->assign('pcpInfo', $pcpInfo);
     }
 
-    if (CRM_Utils_Array::value('Assigned Activities', $this->_userOptions)) {
+    if (!empty($this->_userOptions['Assigned Activities'])) {
       // Assigned Activities section
       $dashboardElements[] = array(
+        'class' => 'crm-dashboard-assignedActivities',
         'templatePath' => 'CRM/Activity/Page/UserDashboard.tpl',
         'sectionTitle' => ts('Your Assigned Activities'),
         'weight' => 5,
@@ -187,7 +192,7 @@ class CRM_Contact_Page_View_UserDashBoard extends CRM_Core_Page {
     usort($dashboardElements, array('CRM_Utils_Sort', 'cmpFunc'));
     $this->assign('dashboardElements', $dashboardElements);
 
-    if (CRM_Utils_Array::value('Groups', $this->_userOptions)) {
+    if (!empty($this->_userOptions['Groups'])) {
       $this->assign('showGroup', TRUE);
       //build group selector
       $gContact = new CRM_Contact_Page_View_UserDashBoard_GroupContact();
@@ -201,7 +206,7 @@ class CRM_Contact_Page_View_UserDashBoard extends CRM_Core_Page {
   /**
    * perform actions and display for user dashboard
    *
-   * @return none
+   * @return void
    *
    * @access public
    */
@@ -243,7 +248,7 @@ class CRM_Contact_Page_View_UserDashBoard extends CRM_Core_Page {
           CRM_Core_Action::DISABLE => array(
               'name' => ts('Disable'),
               'url' => 'civicrm/contact/view/rel',
-              'qs' => 'action=disable&reset=1&cid=%%cid%%&id=%%id%%&rtype=%%rtype%%&selectedChild=rel%%&context=dashboard',
+              'qs' => 'action=disable&reset=1&cid=%%cid%%&id=%%id%%&rtype=%%rtype%%&selectedChild=rel&context=dashboard',
               'extra' => 'onclick = "return confirm(\'' . $disableExtra . '\');"',
               'title' => ts('Disable Relationship'),
             ),
@@ -256,9 +261,9 @@ class CRM_Contact_Page_View_UserDashBoard extends CRM_Core_Page {
       'Contact',
       CRM_Core_DAO::$_nullObject,
       self::$_links,
+      CRM_Core_DAO::$_nullObject,
       CRM_Core_DAO::$_nullObject
     );
     return self::$_links;
   }
 }
-

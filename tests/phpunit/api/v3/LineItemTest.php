@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
-| CiviCRM version 4.3                                                |
+| CiviCRM version 4.4                                                |
 +--------------------------------------------------------------------+
 | Copyright CiviCRM LLC (c) 2004-2013                                |
 +--------------------------------------------------------------------+
@@ -34,7 +34,7 @@ class api_v3_LineItemTest extends CiviUnitTestCase {
   protected $contactIds = array();
   protected $_entity = 'line_item';
   protected $contribution_result = null;
-  public $_eNoticeCompliant = TRUE;
+
   public $DBResetRequired = TRUE;
   protected $_financialTypeId = 1;
 

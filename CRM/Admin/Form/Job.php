@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -64,7 +64,7 @@ class CRM_Admin_Form_Job extends CRM_Admin_Form {
   /**
    * Function to build the form
    *
-   * @return None
+   * @return void
    * @access public
    */
   public function buildQuickForm($check = FALSE) {
@@ -153,7 +153,7 @@ class CRM_Admin_Form_Job extends CRM_Admin_Form {
     // CRM-10708
     // job entity thats shipped with core is all lower case.
     // this makes sure camel casing is followed for proper working of default population.
-    if (CRM_Utils_Array::value('api_entity', $defaults)) {
+    if (!empty($defaults['api_entity'])) {
       $defaults['api_entity'] = ucfirst($defaults['api_entity']);
     }
 
@@ -165,7 +165,7 @@ class CRM_Admin_Form_Job extends CRM_Admin_Form {
    *
    * @access public
    *
-   * @return None
+   * @return void
    */
   public function postProcess() {
 

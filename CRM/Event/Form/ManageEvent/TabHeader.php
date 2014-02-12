@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -40,13 +40,16 @@ class CRM_Event_Form_ManageEvent_TabHeader {
 
   static function build(&$form) {
     $tabs = $form->get('tabHeader');
-    if (!$tabs || !CRM_Utils_Array::value('reset', $_GET)) {
+    if (!$tabs || empty($_GET['reset'])) {
       $tabs = self::process($form);
       $form->set('tabHeader', $tabs);
     }
     $form->assign_by_ref('tabHeader', $tabs);
-    $selectedTab = self::getCurrentTab($tabs);
-    $form->assign_by_ref('selectedTab', $selectedTab);
+    CRM_Core_Resources::singleton()
+      ->addScriptFile('civicrm', 'templates/CRM/common/TabHeader.js')
+      ->addSetting(array('tabSettings' => array(
+        'active' => self::getCurrentTab($tabs),
+      )));
     return $tabs;
   }
 
@@ -55,69 +58,72 @@ class CRM_Event_Form_ManageEvent_TabHeader {
       return NULL;
     }
 
+    $default = array(
+      'link' => NULL,
+      'valid' => TRUE,
+      'active' => TRUE,
+      'current' => FALSE,
+      'class' => 'ajaxForm',
+    );
+
     $tabs = array(
-      'settings' => array('title' => ts('Info and Settings'),
-        'link' => NULL,
-        'valid' => FALSE,
-        'active' => FALSE,
-        'current' => FALSE,
-      ),
-      'location' => array('title' => ts('Event Location'),
-        'link' => NULL,
-        'valid' => FALSE,
-        'active' => FALSE,
-        'current' => FALSE,
-      ),
-      'fee' => array('title' => ts('Fees'),
-        'link' => NULL,
-        'valid' => FALSE,
-        'active' => FALSE,
-        'current' => FALSE,
-      ),
-      'registration' => array('title' => ts('Online Registration'),
-        'link' => NULL,
-        'valid' => FALSE,
-        'active' => FALSE,
-        'current' => FALSE,
-      ),
-      'reminder' => array('title' => ts('Schedule Reminders'),
-        'link' => NULL,
-        'valid' => FALSE,
-        'active' => FALSE,
-        'current' => FALSE,
-      ),
-      'conference' => array('title' => ts('Conference Slots'),
-        'link' => NULL,
-        'valid' => FALSE,
-        'active' => FALSE,
-        'current' => FALSE,
-      ),
-      'friend' => array('title' => ts('Tell a Friend'),
-        'link' => NULL,
-        'valid' => FALSE,
-        'active' => FALSE,
-        'current' => FALSE,
-      ),
-      'pcp' => array('title' => ts('Personal Campaigns'),
-        'link' => NULL,
-        'valid' => FALSE,
-        'active' => FALSE,
-        'current' => FALSE,
-      )
+      'settings' => array('title' => ts('Info and Settings'), 'class' => 'ajaxForm livePage') + $default,
+      'location' => array('title' => ts('Event Location')) + $default,
+      'fee' => array('title' => ts('Fees')) + $default,
+      'registration' => array('title' => ts('Online Registration')) + $default,
+      'reminder' => array('title' => ts('Schedule Reminders'), 'class' => 'livePage') + $default,
+      'conference' => array('title' => ts('Conference Slots')) + $default,
+      'friend' => array('title' => ts('Tell a Friend')) + $default,
+      'pcp' => array('title' => ts('Personal Campaigns')) + $default,
     );
 
     // check if we're in shopping cart mode for events
     $enableCart = CRM_Core_BAO_Setting::getItem(CRM_Core_BAO_Setting::EVENT_PREFERENCES_NAME,
       'enable_cart'
     );
-
     if (!$enableCart) {
       unset($tabs['conference']);
     }
 
     $eventID = $form->getVar('_id');
+    if ($eventID) {
+      // disable tabs based on their configuration status 
+      $sql = "
+SELECT     e.loc_block_id as is_location, e.is_online_registration, e.is_monetary, taf.is_active, pcp.is_active as is_pcp, sch.id as is_reminder
+FROM       civicrm_event e
+LEFT JOIN  civicrm_tell_friend taf ON ( taf.entity_table = 'civicrm_event' AND taf.entity_id = e.id )
+LEFT JOIN  civicrm_pcp_block pcp   ON ( pcp.entity_table = 'civicrm_event' AND pcp.entity_id = e.id )
+LEFT JOIN  civicrm_action_mapping  map ON ( map.entity_value = 'civicrm_event' )
+LEFT JOIN  civicrm_action_schedule sch ON ( sch.mapping_id = map.id AND sch.entity_value = %1 )
+WHERE      e.id = %1
+";
+      $params = array(1 => array($eventID, 'Integer'));
+      $dao = CRM_Core_DAO::executeQuery($sql, $params);
+      if (!$dao->fetch()) {
+        CRM_Core_Error::fatal();
+      }
+      if (!$dao->is_location) {
+        $tabs['location']['valid'] = FALSE;
+      }
+      if (!$dao->is_online_registration) {
+        $tabs['registration']['valid'] = FALSE;
+      }
+      if (!$dao->is_monetary) {
+        $tabs['fee']['valid'] = FALSE;
+      }
+      if (!$dao->is_active) {
+        $tabs['friend']['valid'] = FALSE;
+      }
+      if (!$dao->is_pcp) {
+        $tabs['pcp']['valid'] = FALSE;
+      }
+      if (!$dao->is_reminder) {
+        $tabs['reminder']['valid'] = FALSE;
+      }
+    }
 
     // see if any other modules want to add any tabs
+    // note: status of 'valid' flag of any injected tab, needs to be taken care in the hook implementation.
     CRM_Utils_Hook::tabset('civicrm/event/manage', $tabs,
       array('event_id' => $eventID));
 
@@ -133,7 +139,7 @@ class CRM_Event_Form_ManageEvent_TabHeader {
 
       case 'ScheduleReminders':
         $class = 'reminder';
-        $new = CRM_Utils_Array::value('new', $_GET) ? '&new=1' : '';
+        $new = !empty($_GET['new']) ? '&new=1' : '';
         break;
 
       default:
@@ -150,7 +156,7 @@ class CRM_Event_Form_ManageEvent_TabHeader {
     }
 
     if ($eventID) {
-      $reset = CRM_Utils_Array::value('reset', $_GET) ? 'reset=1&' : '';
+      $reset = !empty($_GET['reset']) ? 'reset=1&' : '';
 
       foreach ($tabs as $key => $value) {
         if (!isset($tabs[$key]['qfKey'])) {
@@ -158,37 +164,9 @@ class CRM_Event_Form_ManageEvent_TabHeader {
         }
 
         $tabs[$key]['link'] = CRM_Utils_System::url("civicrm/event/manage/{$key}",
-          "{$reset}action=update&snippet=5&id={$eventID}&component=event{$new}{$tabs[$key]['qfKey']}"
+          "{$reset}action=update&id={$eventID}&component=event{$new}{$tabs[$key]['qfKey']}"
         );
-        $tabs[$key]['active'] = $tabs[$key]['valid'] = TRUE;
       }
-
-      // retrieve info about paid event, tell a friend and online reg
-      $sql = "
-SELECT     e.is_online_registration, e.is_monetary, taf.is_active
-FROM       civicrm_event e
-LEFT JOIN  civicrm_tell_friend taf ON ( taf.entity_table = 'civicrm_event' AND taf.entity_id = e.id )
-WHERE      e.id = %1
-";
-      $params = array(1 => array($eventID, 'Integer'));
-      $dao = CRM_Core_DAO::executeQuery($sql, $params);
-      if (!$dao->fetch()) {
-        CRM_Core_Error::fatal();
-      }
-
-      if (!$dao->is_online_registration) {
-        $tabs['registration']['valid'] = FALSE;
-      }
-
-      if (!$dao->is_monetary) {
-        $tabs['fee']['valid'] = FALSE;
-      }
-
-      if (!$dao->is_active) {
-        $tabs['friend']['valid'] = FALSE;
-      }
-
-      //calculate if the reminder has been configured for this event
     }
 
     return $tabs;

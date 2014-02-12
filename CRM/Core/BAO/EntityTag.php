@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -124,13 +124,11 @@ class CRM_Core_BAO_EntityTag extends CRM_Core_DAO_EntityTag {
   static function del(&$params) {
     $entityTag = new CRM_Core_BAO_EntityTag();
     $entityTag->copyValues($params);
-    if ($entityTag->find(TRUE)) {
-      $entityTag->delete();
+    $entityTag->delete();
 
-      //invoke post hook on entityTag
-      $object = array(0 => array(0 => $params['entity_id']), 1 => $params['entity_table']);
-      CRM_Utils_Hook::post('delete', 'EntityTag', $params['tag_id'], $object);
-    }
+    //invoke post hook on entityTag
+    $object = array(0 => array(0 => $params['entity_id']), 1 => $params['entity_table']);
+    CRM_Utils_Hook::post('delete', 'EntityTag', $params['tag_id'], $object);
   }
 
   /**
@@ -268,18 +266,18 @@ class CRM_Core_BAO_EntityTag extends CRM_Core_DAO_EntityTag {
    *
    * @param object  $tag    an object of a tag.
    *
-   * @return  array   $contactIds    array of contact ids
+   * @return  array   $entityIds    array of entity ids
    * @access public
    */
   function getEntitiesByTag($tag) {
-    $contactIds = array();
+    $entityIds = array();
     $entityTagDAO = new CRM_Core_DAO_EntityTag();
     $entityTagDAO->tag_id = $tag->id;
     $entityTagDAO->find();
     while ($entityTagDAO->fetch()) {
-      $contactIds[] = $entityTagDAO->contact_id;
+      $entityIds[] = $entityTagDAO->entity_id;
     }
-    return $contactIds;
+    return $entityIds;
   }
 
   /**

@@ -2,7 +2,7 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -35,7 +35,7 @@
  */
 class CRM_Utils_Hook_Joomla extends CRM_Utils_Hook {
   function invoke($numParams,
-                  &$arg1, &$arg2, &$arg3, &$arg4, &$arg5,
+                  &$arg1, &$arg2, &$arg3, &$arg4, &$arg5, &$arg6,
                   $fnSuffix
   ) {
     // ensure that we are running in a joomla context
@@ -44,6 +44,7 @@ class CRM_Utils_Hook_Joomla extends CRM_Utils_Hook {
     if (defined('_JEXEC')) {
       //Invoke the Joomla plugin system to observe to civicrm events.
       jimport('joomla.plugin.helper');
+      jimport('cms.plugin.helper'); // Joomla 3.2
       JPluginHelper::importPlugin('civicrm');
 
       // get app based on cli or web
@@ -60,10 +61,10 @@ class CRM_Utils_Hook_Joomla extends CRM_Utils_Hook {
         }
       }
 
-      $result = $app->triggerEvent($fnSuffix, array(&$arg1, &$arg2, &$arg3, &$arg4, &$arg5));
+      $result = $app->triggerEvent($fnSuffix, array(&$arg1, &$arg2, &$arg3, &$arg4, &$arg5, &$arg6));
 
       $moduleResult = $this->commonInvoke($numParams,
-        $arg1, $arg2, $arg3, $arg4, $arg5,
+        $arg1, $arg2, $arg3, $arg4, $arg5, $arg6,
         $fnSuffix, 'joomla');
       if (!empty($moduleResult) && is_array($moduleResult)) {
         if (empty($result)) {

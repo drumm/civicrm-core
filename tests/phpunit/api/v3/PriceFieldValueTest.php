@@ -2,7 +2,7 @@
 
 /*
  +--------------------------------------------------------------------+
-| CiviCRM version 4.3                                                |
+| CiviCRM version 4.4                                                |
 +--------------------------------------------------------------------+
 | Copyright CiviCRM LLC (c) 2004-2013                                |
 +--------------------------------------------------------------------+
@@ -33,7 +33,7 @@ class api_v3_PriceFieldValueTest extends CiviUnitTestCase {
   protected $id = 0;
   protected $priceSetID = 0;
   protected $_entity = 'price_field_value';
-  public $_eNoticeCompliant = TRUE;
+
   public $DBResetRequired = TRUE;
 
   public function setUp() {

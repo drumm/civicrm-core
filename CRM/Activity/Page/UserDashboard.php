@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -46,14 +46,18 @@ class CRM_Activity_Page_UserDashboard extends CRM_Contact_Page_View_UserDashBoar
    */
   function listActivities() {
 
-    $controller = new CRM_Core_Controller_Simple('CRM_Activity_Form_Search', ts('Activities'));
+    $controller =
+      new CRM_Core_Controller_Simple(
+        'CRM_Activity_Form_Search', ts('Activities'),
+        NULL,
+        FALSE, FALSE, TRUE, FALSE
+      );
     $controller->setEmbedded(TRUE);
     $controller->reset();
     $controller->set('context', 'user');
     $controller->set('cid', $this->_contactId);
-    $controller->set('status', array(1 => 'on'));
+    $controller->set('status', array(1 => 'on', 7 => 'on'));
     $controller->set('activity_role', 2);
-    $controller->set('activity_contact_name', 'd6');
     $controller->set('force', 1);
     $controller->process();
     $controller->run();

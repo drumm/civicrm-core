@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -34,8 +34,7 @@
  */
 
 /**
- * This class generates form components generic to Mobile provider
- *
+ * Base class for admin forms
  */
 class CRM_Admin_Form extends CRM_Core_Form {
 
@@ -60,6 +59,9 @@ class CRM_Admin_Form extends CRM_Core_Form {
    */
   protected $_BAOName;
 
+  /**
+   * Basic setup
+   */
   function preProcess() {
     $this->_id      = $this->get('id');
     $this->_BAOName = $this->get('BAOName');
@@ -78,7 +80,7 @@ class CRM_Admin_Form extends CRM_Core_Form {
    *
    * @access public
    *
-   * @return None
+   * @return array
    */
   function setDefaultValues() {
     if (isset($this->_id) && empty($this->_values)) {
@@ -97,7 +99,7 @@ class CRM_Admin_Form extends CRM_Core_Form {
 
     // its ok if there is no element called is_active
     $defaults['is_active'] = ($this->_id) ? CRM_Utils_Array::value('is_active', $defaults) : 1;
-    if (CRM_Utils_Array::value('parent_id', $defaults)) {
+    if (!empty($defaults['parent_id'])) {
       $this->assign('is_parent', TRUE);
     }
     return $defaults;
@@ -106,7 +108,7 @@ class CRM_Admin_Form extends CRM_Core_Form {
   /**
    * Function to actually build the form
    *
-   * @return None
+   * @return void
    * @access public
    */
   public function buildQuickForm() {
@@ -120,6 +122,16 @@ class CRM_Admin_Form extends CRM_Core_Form {
           array(
             'type' => 'cancel',
             'name' => ts('Cancel'),
+          ),
+        )
+      );
+    }
+    elseif ($this->_action & CRM_Core_Action::VIEW) {
+      $this->addButtons(array(
+          array(
+            'type' => 'cancel',
+            'name' => ts('Done'),
+            'isDefault' => TRUE,
           ),
         )
       );

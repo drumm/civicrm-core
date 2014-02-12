@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -43,7 +43,7 @@ class api_v3_ContributionPageTest extends CiviUnitTestCase {
   protected $contactIds = array();
   protected $_entity = 'contribution_page';
   protected $contribution_result = null;
-  public $_eNoticeCompliant = TRUE;
+
   public $DBResetRequired = TRUE;
   public function setUp() {
     parent::setUp();

@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -38,7 +38,7 @@ class api_v3_AddressTest extends CiviUnitTestCase {
   protected $_contactID;
   protected $_locationType;
   protected $_params;
-  public $_eNoticeCompliant = TRUE;
+
   protected $_entity;
 
   function setUp() {

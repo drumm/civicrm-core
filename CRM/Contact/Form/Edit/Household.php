@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -91,7 +91,7 @@ class CRM_Contact_Form_Edit_Household {
     $primaryID = CRM_Contact_Form_Contact::formRule($fields, $errors, $contactID);
 
     // make sure that household name is set
-    if (!CRM_Utils_Array::value('household_name', $fields)) {
+    if (empty($fields['household_name'])) {
       $errors['household_name'] = 'Household Name should be set.';
     }
 

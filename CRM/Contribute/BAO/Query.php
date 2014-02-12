@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -76,7 +76,7 @@ class CRM_Contribute_BAO_Query {
     }
 
     // get financial_type
-    if (CRM_Utils_Array::value('financial_type', $query->_returnProperties)) {
+    if (!empty($query->_returnProperties['financial_type'])) {
       $query->_select['financial_type']  = "civicrm_financial_type.name as financial_type";
       $query->_element['financial_type'] = 1;
       $query->_tables['civicrm_contribution'] = 1;
@@ -84,27 +84,27 @@ class CRM_Contribute_BAO_Query {
     }
 
     // get accounting code
-    if (CRM_Utils_Array::value( 'accounting_code', $query->_returnProperties)) {
+    if (!empty($query->_returnProperties['accounting_code'])) {
       $query->_select['accounting_code']  = "civicrm_financial_account.accounting_code as accounting_code";
       $query->_element['accounting_code'] = 1;
       $query->_tables['civicrm_accounting_code'] = 1;
       $query->_tables['civicrm_financial_account'] = 1;
     }
 
-    if (CRM_Utils_Array::value('contribution_note', $query->_returnProperties)) {
+    if (!empty($query->_returnProperties['contribution_note'])) {
       $query->_select['contribution_note'] = "civicrm_note.note as contribution_note";
       $query->_element['contribution_note'] = 1;
       $query->_tables['contribution_note'] = 1;
     }
 
-    if (CRM_Utils_Array::value('contribution_batch', $query->_returnProperties)) {
+    if (!empty($query->_returnProperties['contribution_batch'])) {
       $query->_select['contribution_batch'] = "civicrm_batch.title as contribution_batch";
       $query->_element['contribution_batch'] = 1;
       $query->_tables['contribution_batch'] = 1;
     }
 
     // get contribution_status
-    if (CRM_Utils_Array::value('contribution_status_id', $query->_returnProperties)) {
+    if (!empty($query->_returnProperties['contribution_status_id'])) {
       $query->_select['contribution_status_id'] = "contribution_status.value as contribution_status_id";
       $query->_element['contribution_status_id'] = 1;
       $query->_tables['civicrm_contribution'] = 1;
@@ -112,7 +112,7 @@ class CRM_Contribute_BAO_Query {
     }
 
     // get contribution_status label
-    if (CRM_Utils_Array::value('contribution_status', $query->_returnProperties)) {
+    if (!empty($query->_returnProperties['contribution_status'])) {
       $query->_select['contribution_status'] = "contribution_status.label as contribution_status";
       $query->_element['contribution_status'] = 1;
       $query->_tables['civicrm_contribution'] = 1;
@@ -120,59 +120,27 @@ class CRM_Contribute_BAO_Query {
     }
 
     // get payment instruments
-    if (CRM_Utils_Array::value('payment_instrument', $query->_returnProperties)) {
+    if (!empty($query->_returnProperties['payment_instrument'])) {
       $query->_select['contribution_payment_instrument'] = "payment_instrument.name as contribution_payment_instrument";
       $query->_element['contribution_payment_instrument'] = 1;
       $query->_tables['civicrm_contribution'] = 1;
       $query->_tables['contribution_payment_instrument'] = 1;
     }
 
-    // get honor contact name
-    if (CRM_Utils_Array::value('honor_contact_name', $query->_returnProperties)) {
-      $query->_select['contribution_honor_contact_name'] = "civicrm_contact_c.display_name as contribution_honor_contact_name";
-      $query->_element['contribution_honor_contact_name'] = 1;
-      $query->_tables['civicrm_contribution'] = 1;
-      $query->_tables['contribution_honor_contact_name'] = 1;
-    }
-
-    // get honor type label
-    if (CRM_Utils_Array::value('honor_type_label', $query->_returnProperties)) {
-      $query->_select['contribution_honor_type_label'] = "honor_type.label as contribution_honor_type_label";
-      $query->_element['contribution_honor_type_label'] = 1;
-      $query->_tables['civicrm_contribution'] = 1;
-      $query->_tables['contribution_honor_type_label'] = 1;
-    }
-
-    // get honor contact email
-    if (CRM_Utils_Array::value('honor_contact_email', $query->_returnProperties)) {
-      $query->_select['contribution_honor_contact_email'] = "honor_email.email as contribution_honor_contact_email";
-      $query->_element['contribution_honor_contact_email'] = 1;
-      $query->_tables['civicrm_contribution'] = 1;
-      $query->_tables['contribution_honor_contact_email'] = 1;
-    }
-
-    // get honor contact id
-    if (CRM_Utils_Array::value('honor_contact_id', $query->_returnProperties)) {
-      $query->_select['contribution_honor_contact_id'] = "civicrm_contribution.honor_contact_id as contribution_honor_contact_id";
-      $query->_element['contribution_honor_contact_id'] = 1;
-      $query->_tables['civicrm_contribution'] = 1;
-    }
-
-
-    if (CRM_Utils_Array::value('check_number', $query->_returnProperties)) {
+    if (!empty($query->_returnProperties['check_number'])) {
       $query->_select['contribution_check_number'] = "civicrm_contribution.check_number as contribution_check_number";
       $query->_element['contribution_check_number'] = 1;
       $query->_tables['civicrm_contribution'] = 1;
     }
 
-    if (CRM_Utils_Array::value('contribution_campaign_id', $query->_returnProperties)) {
+    if (!empty($query->_returnProperties['contribution_campaign_id'])) {
       $query->_select['contribution_campaign_id'] = 'civicrm_contribution.campaign_id as contribution_campaign_id';
       $query->_element['contribution_campaign_id'] = 1;
       $query->_tables['civicrm_contribution'] = 1;
     }
 
     // LCD 716
-    if (CRM_Utils_Array::value('soft_credit_name', $query->_returnProperties)) {
+    if (!empty($query->_returnProperties['soft_credit_name'])) {
       $query->_select['contribution_soft_credit_name'] = "civicrm_contact_d.display_name as contribution_soft_credit_name";
       $query->_element['contribution_soft_credit_name'] = 1;
       $query->_tables['civicrm_contribution'] = 1;
@@ -180,7 +148,7 @@ class CRM_Contribute_BAO_Query {
       $query->_tables['civicrm_contribution_soft_contact'] = 1;
     }
 
-    if (CRM_Utils_Array::value('soft_credit_email', $query->_returnProperties)) {
+    if (!empty($query->_returnProperties['soft_credit_email'])) {
       $query->_select['contribution_soft_credit_email'] = "soft_email.email as contribution_soft_credit_email";
       $query->_element['contribution_soft_credit_email'] = 1;
       $query->_tables['civicrm_contribution'] = 1;
@@ -189,7 +157,7 @@ class CRM_Contribute_BAO_Query {
       $query->_tables['civicrm_contribution_soft_email'] = 1;
     }
 
-    if (CRM_Utils_Array::value('soft_credit_phone', $query->_returnProperties)) {
+    if (!empty($query->_returnProperties['soft_credit_phone'])) {
       $query->_select['contribution_soft_credit_email'] = "soft_phone.phone as contribution_soft_credit_phone";
       $query->_element['contribution_soft_credit_phone'] = 1;
       $query->_tables['civicrm_contribution'] = 1;
@@ -203,7 +171,7 @@ class CRM_Contribute_BAO_Query {
   static function where(&$query) {
     $grouping = NULL;
     foreach (array_keys($query->_params) as $id) {
-      if (!CRM_Utils_Array::value(0, $query->_params[$id])) {
+      if (empty($query->_params[$id][0])) {
         continue;
       }
       if (substr($query->_params[$id][0], 0, 13) == 'contribution_' || substr($query->_params[$id][0], 0, 10) == 'financial_') {
@@ -301,14 +269,47 @@ class CRM_Contribute_BAO_Query {
         $query->_tables['civicrm_contribution'] = $query->_whereTables['civicrm_contribution'] = 1;
         return;
 
-        case 'financial_type_id':
-        case 'financial_type':
-        $cType = $value;
+      case 'financial_type_id':
+      case 'financial_type':
+        // The financial_type_id might be an array (from aggregate contributions custom search)
+        // In this case, we need to change the query.
+        if (is_array($value)) {
+          $val = array();
+          // Rebuild the array to get the data we're interested in as array
+          // values not array keys.
+          foreach ($value as $k => $v) {
+            if ($v) {
+              $val[] = $k;
+            }
+          }
+          if (count($val) > 0) {
+            // Overwrite $value so it works with an IN where statement.
+            $op = 'IN';
+            $value = '(' . implode(',', $val) . ')';
+          }
+          else {
+            // If we somehow have an empty array, just return
+            return;
+          }
+        }
+
         $types = CRM_Contribute_PseudoConstant::financialType();
+
+        // Ensure we have a sensible string to display to the user.
+        $names = array();
+        if (isset($val) && is_array($val)) {
+          foreach($val as $id) {
+            $names[] = CRM_Utils_Array::value($id, $types);
+          }
+        }
+        else {
+          $names[] = $types[$value];
+        }
+
         $query->_where[$grouping][] = CRM_Contact_BAO_Query::buildClause("civicrm_contribution.financial_type_id",
           $op, $value, "Integer"
         );
-        $query->_qill[$grouping ][] = ts('Financial Type - %1', array(1 => $types[$cType]));
+        $query->_qill[$grouping][] = ts('Financial Type %1', array(1 => $op)) . ' ' . implode(' ' . ts('or') . ' ', $names);
         $query->_tables['civicrm_contribution'] = $query->_whereTables['civicrm_contribution'] = 1;
         return;
 
@@ -337,22 +338,6 @@ class CRM_Contribute_BAO_Query {
         );
 
         $query->_qill[$grouping][] = ts('Paid By - %1', array(1 => $pis[$pi]));
-        $query->_tables['civicrm_contribution'] = $query->_whereTables['civicrm_contribution'] = 1;
-        return;
-
-      case 'contribution_in_honor_of':
-        $name    = trim($value);
-        $newName = str_replace(',', " ", $name);
-        $pieces  = explode(' ', $newName);
-        foreach ($pieces as $piece) {
-          $value = $strtolower(CRM_Core_DAO::escapeString(trim($piece)));
-          $value = "'%$value%'";
-          $sub[] = " ( contact_b.sort_name LIKE $value )";
-        }
-
-        $query->_where[$grouping][] = ' ( ' . implode('  OR ', $sub) . ' ) ';
-        $query->_qill[$grouping][] = ts('Honor name like - \'%1\'', array(1 => $name));
-        $query->_tables['civicrm_contact_b'] = $query->_whereTables['civicrm_contact_b'] = 1;
         $query->_tables['civicrm_contribution'] = $query->_whereTables['civicrm_contribution'] = 1;
         return;
 
@@ -532,7 +517,7 @@ class CRM_Contribute_BAO_Query {
         return;
 
       case 'contribution_batch_id':
-        $batches = CRM_Batch_BAO_Batch::getBatches();
+        $batches = CRM_Contribute_PseudoConstant::batch();
         $query->_where[$grouping][] = " civicrm_entity_batch.batch_id $op $value";
         $query->_qill[$grouping][] = ts('Batch Name %1 %2', array(1 => $op, 2 => $batches[$value]));
         $query->_tables['civicrm_contribution'] = $query->_whereTables['civicrm_contribution'] = 1;
@@ -632,10 +617,6 @@ class CRM_Contribute_BAO_Query {
                                AND option_group_payment_instrument.id = payment_instrument.option_group_id ) ";
         break;
 
-      case 'civicrm_contact_b':
-        $from .= " $side JOIN civicrm_contact contact_b ON (civicrm_contribution.honor_contact_id = contact_b.id )";
-        break;
-
       case 'contribution_status':
         $from = " $side JOIN civicrm_option_group option_group_contribution_status ON (option_group_contribution_status.name = 'contribution_status')";
         $from .= " $side JOIN civicrm_option_value contribution_status ON (civicrm_contribution.contribution_status_id = contribution_status.value
@@ -645,20 +626,6 @@ class CRM_Contribute_BAO_Query {
       case 'contribution_note':
         $from .= " $side JOIN civicrm_note ON ( civicrm_note.entity_table = 'civicrm_contribution' AND
                                                     civicrm_contribution.id = civicrm_note.entity_id )";
-        break;
-
-      case 'contribution_honor_contact_name':
-        $from .= " $side JOIN civicrm_contact civicrm_contact_c ON (civicrm_contribution.honor_contact_id = civicrm_contact_c.id )";
-        break;
-
-      case 'contribution_honor_contact_email':
-        $from .= " $side JOIN civicrm_email as honor_email ON (civicrm_contribution.honor_contact_id = honor_email.contact_id AND honor_email.is_primary = 1 )";
-        break;
-
-      case 'contribution_honor_type_label':
-        $from = " $side JOIN civicrm_option_group option_group_honor_type ON ( option_group_honor_type.name = 'honor_type')";
-        $from .= " $side JOIN civicrm_option_value honor_type ON (civicrm_contribution.honor_type_id = honor_type.value
-                               AND option_group_honor_type.id = honor_type.option_group_id ) ";
         break;
 
       case 'contribution_membership':
@@ -688,8 +655,16 @@ class CRM_Contribute_BAO_Query {
         break;
 
       case 'contribution_batch':
-        $from .= " $side JOIN civicrm_entity_batch ON ( civicrm_entity_batch.entity_table = 'civicrm_contribution' AND
-          civicrm_contribution.id = civicrm_entity_batch.entity_id )";
+        $from .= " $side JOIN civicrm_entity_financial_trxn ON (
+        civicrm_entity_financial_trxn.entity_table = 'civicrm_contribution'
+        AND civicrm_contribution.id = civicrm_entity_financial_trxn.entity_id )";
+
+        $from .= " $side JOIN civicrm_financial_trxn ON (
+        civicrm_entity_financial_trxn.financial_trxn_id = civicrm_financial_trxn.id )";
+
+        $from .= " $side JOIN civicrm_entity_batch ON ( civicrm_entity_batch.entity_table = 'civicrm_financial_trxn'
+        AND civicrm_financial_trxn.id = civicrm_entity_batch.entity_id )";
+
         $from .= " $side JOIN civicrm_batch ON civicrm_entity_batch.batch_id = civicrm_batch.id";
         break;
     }
@@ -777,21 +752,21 @@ class CRM_Contribute_BAO_Query {
       ts('Currency Type'),
       array(
         '' => ts('- any -')) +
-      CRM_Core_PseudoConstant::get('CRM_Contribute_DAO_Contribution', 'currency', array('labelColumn' => 'name'))
+      CRM_Core_PseudoConstant::get('CRM_Contribute_DAO_Contribution', 'currency', array('labelColumn' => 'name')),
+      FALSE, array('class' => 'crm-select2')
     );
 
-    $form->add('select', 'financial_type_id',
-      ts('Financial Type'),
-      array(
-        '' => ts('- any -')) +
-      CRM_Contribute_PseudoConstant::financialType()
+    // CRM-13848
+    $form->addSelect('financial_type_id',
+      array('entity' => 'contribution', 'multiple' => 'multiple', 'option_url' => NULL, 'placeholder' => ts('- any -'))
     );
 
     $form->add('select', 'contribution_page_id',
       ts('Contribution Page'),
       array(
         '' => ts('- any -')) +
-      CRM_Contribute_PseudoConstant::contributionPage()
+      CRM_Contribute_PseudoConstant::contributionPage(),
+      FALSE, array('class' => 'crm-select2')
     );
 
 
@@ -799,14 +774,16 @@ class CRM_Contribute_BAO_Query {
       ts('Payment Instrument'),
       array(
         '' => ts('- any -')) +
-      CRM_Contribute_PseudoConstant::paymentInstrument()
+      CRM_Contribute_PseudoConstant::paymentInstrument(),
+      FALSE, array('class' => 'crm-select2')
     );
 
     $form->add('select', 'contribution_pcp_made_through_id',
       ts('Personal Campaign Page'),
       array(
         '' => ts('- any -')) +
-      CRM_Contribute_PseudoConstant::pcPage()
+      CRM_Contribute_PseudoConstant::pcPage(),
+      FALSE, array('class' => 'crm-select2')
     );
 
     $status = array();
@@ -822,25 +799,22 @@ class CRM_Contribute_BAO_Query {
     $form->addGroup($status, 'contribution_status_id', ts('Contribution Status'));
 
     // Add fields for thank you and receipt
-    $form->addYesNo('contribution_thankyou_date_is_not_null', ts('Thank-you sent?'));
-    $form->addYesNo('contribution_receipt_date_is_not_null', ts('Receipt sent?'));
+    $form->addYesNo('contribution_thankyou_date_is_not_null', ts('Thank-you sent?'), TRUE);
+    $form->addYesNo('contribution_receipt_date_is_not_null', ts('Receipt sent?'), TRUE);
 
-    // Add fields for honor search
-    $form->addElement('text', 'contribution_in_honor_of', ts("In Honor Of"));
-
-    $form->addYesNo('contribution_pay_later', ts('Contribution is Pay Later?'));
-    $form->addYesNo('contribution_recurring', ts('Contribution is Recurring?'));
+    $form->addYesNo('contribution_pay_later', ts('Contribution is Pay Later?'), TRUE);
+    $form->addYesNo('contribution_recurring', ts('Contribution is Recurring?'), TRUE);
 
     // Recurring contribution fields
     foreach (self::getRecurringFields() as $key => $label) {
-      CRM_Core_Form_Date::buildDateRange($form, $key, 1, '_low', '_high', $label, FALSE);
+      CRM_Core_Form_Date::buildDateRange($form, $key, 1, '_low', '_high');
       // If data has been entered for a recurring field, tell the tpl layer to open the pane
       if (!empty($form->_formValues[$key . '_relative']) || !empty($form->_formValues[$key . '_low']) || !empty($form->_formValues[$key . '_high'])) {
         $form->assign('contribution_recur_pane_open', TRUE);
       }
     }
 
-    $form->addYesNo('contribution_test', ts('Contribution is a Test?'));
+    $form->addYesNo('contribution_test', ts('Contribution is a Test?'), TRUE);
 
     // Add field for transaction ID search
     $form->addElement('text', 'contribution_transaction_id', ts("Transaction ID"));
@@ -848,7 +822,7 @@ class CRM_Contribute_BAO_Query {
     $form->addElement('text', 'contribution_check_number', ts('Check Number'));
 
     // Add field for pcp display in roll search
-    $form->addYesNo('contribution_pcp_display_in_roll', ts('Personal Campaign Page Honor Roll?'));
+    $form->addYesNo('contribution_pcp_display_in_roll', ts('Personal Campaign Page Honor Roll?'), TRUE);
 
     // Add all the custom searchable fields
     $contribution = array('Contribution');
@@ -871,21 +845,18 @@ class CRM_Contribute_BAO_Query {
     CRM_Campaign_BAO_Campaign::addCampaignInComponentSearch($form, 'contribution_campaign_id');
 
     // Add batch select
-    $batches = CRM_Batch_BAO_Batch::getBatches();
+    $batches = CRM_Contribute_PseudoConstant::batch();
 
     if ( !empty( $batches ) ) {
       $form->add('select', 'contribution_batch_id',
         ts('Batch Name'),
-        array( '' => ts('- any -')) + $batches );
+        array('' => ts('- any -')) + $batches,
+        FALSE, array('class' => 'crm-select2')
+      );
     }
 
     $form->assign('validCiviContribute', TRUE);
     $form->setDefaults(array('contribution_test' => 0));
-  }
-
-  static function addShowHide(&$showHide) {
-    $showHide->addHide('contributeForm');
-    $showHide->addShow('contributeForm_show');
   }
 
   static function searchAction(&$row, $id) {
@@ -893,12 +864,11 @@ class CRM_Contribute_BAO_Query {
 
   static function tableNames(&$tables) {
     // Add contribution table
-    if (CRM_Utils_Array::value('civicrm_product', $tables)) {
+    if (!empty($tables['civicrm_product'])) {
       $tables = array_merge(array('civicrm_contribution' => 1), $tables);
     }
 
-    if (CRM_Utils_Array::value('civicrm_contribution_product', $tables) &&
-      !CRM_Utils_Array::value('civicrm_product', $tables)) {
+    if (!empty($tables['civicrm_contribution_product']) && empty($tables['civicrm_product'])) {
       $tables['civicrm_product'] = 1;
     }
   }

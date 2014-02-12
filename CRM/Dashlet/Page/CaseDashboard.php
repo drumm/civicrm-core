@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -42,7 +42,7 @@ class CRM_Dashlet_Page_CaseDashboard extends CRM_Core_Page {
   /**
    * Case dashboard as dashlet
    *
-   * @return none
+   * @return void
    *
    * @access public
    */

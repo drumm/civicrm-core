@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -471,7 +471,7 @@ class CRM_Utils_System_Joomla extends CRM_Utils_System_Base {
     jimport('joomla.application.component.helper');
     jimport('joomla.database.table');
 
-    $JUserTable = &JTable::getInstance('User', 'JTable');
+    $JUserTable = JTable::getInstance('User', 'JTable');
 
     $db = $JUserTable->getDbo();
     $query = $db->getQuery(TRUE);
@@ -526,7 +526,7 @@ class CRM_Utils_System_Joomla extends CRM_Utils_System_Base {
   function setUserSession($data) {
     list($userID, $ufID) = $data;
     $user = new JUser( $ufID );
-    $session = &JFactory::getSession();
+    $session = JFactory::getSession();
     $session->set('user', $user);
 
     parent::setUserSession($data);
@@ -564,7 +564,7 @@ class CRM_Utils_System_Joomla extends CRM_Utils_System_Base {
   function getUFLocale() {
     if (defined('_JEXEC')) {
       $conf = JFactory::getConfig();
-      $locale = $conf->getValue('config.language');
+      $locale = $conf->get('language');
       return str_replace('-', '_', $locale);
     }
     return NULL;

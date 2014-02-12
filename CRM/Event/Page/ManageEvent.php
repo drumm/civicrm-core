@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -70,14 +70,12 @@ class CRM_Event_Page_ManageEvent extends CRM_Core_Page {
       self::$_actionLinks = array(
         CRM_Core_Action::DISABLE => array(
           'name' => ts('Disable'),
-          'extra' => 'onclick = "enableDisable( %%id%%,\'' . 'CRM_Event_BAO_Event' . '\',\'' . 'enable-disable' . '\' );"',
-          'ref' => 'disable-action',
+          'ref' => 'crm-enable-disable',
           'title' => ts('Disable Event'),
         ),
         CRM_Core_Action::ENABLE => array(
           'name' => ts('Enable'),
-          'extra' => 'onclick = "enableDisable( %%id%%,\'' . 'CRM_Event_BAO_Event' . '\',\'' . 'disable-enable' . '\' );"',
-          'ref' => 'enable-action',
+          'ref' => 'crm-enable-disable',
           'title' => ts('Enable Event'),
         ),
         CRM_Core_Action::DELETE => array(
@@ -104,9 +102,13 @@ class CRM_Event_Page_ManageEvent extends CRM_Core_Page {
    *
    * @return array (reference) of tab links
    */
-  function &tabs($enableCart) {
+  static function &tabs($enableCart) {
+    $cacheKey = $enableCart ? 1 : 0;
     if (!(self::$_tabLinks)) {
-      self::$_tabLinks = array(
+      self::$_tabLinks = array();
+    }
+    if (!isset(self::$_tabLinks[$cacheKey])) {
+      self::$_tabLinks[$cacheKey] = array(
         'settings' => array(
           'title' => ts('Info and Settings'),
           'url' => 'civicrm/event/manage/settings',
@@ -115,7 +117,7 @@ class CRM_Event_Page_ManageEvent extends CRM_Core_Page {
         'location' => array(
           'title' => ts('Location'),
           'url' => 'civicrm/event/manage/location',
-          'field' => 'is_show_location',
+          'field' => 'loc_block_id',
         ),
         'fee' => array(
           'title' => ts('Fees'),
@@ -151,11 +153,11 @@ class CRM_Event_Page_ManageEvent extends CRM_Core_Page {
     }
 
     if (!$enableCart) {
-      unset(self::$_tabLinks['conference']);
+      unset(self::$_tabLinks[$cacheKey]['conference']);
     }
 
-    CRM_Utils_Hook::tabset('civicrm/event/manage', self::$_tabLinks, array());
-    return self::$_tabLinks;
+    CRM_Utils_Hook::tabset('civicrm/event/manage', self::$_tabLinks[$cacheKey], array());
+    return self::$_tabLinks[$cacheKey];
   }
 
   /**
@@ -292,7 +294,7 @@ ORDER BY start_date desc
     );
     $this->assign('eventCartEnabled', $enableCart);
     $mappingID = CRM_Core_DAO::getFieldValue('CRM_Core_DAO_ActionMapping', 'civicrm_event', 'id', 'entity_value');
-
+    $eventType = CRM_Core_OptionGroup::values('event_type');
     while ($dao->fetch()) {
       if (in_array($dao->id, $permissions[CRM_Core_Permission::VIEW])) {
         $manageEvent[$dao->id] = array();
@@ -319,7 +321,10 @@ ORDER BY start_date desc
           $action,
           array('id' => $dao->id),
           ts('more'),
-          TRUE
+          TRUE,
+          'event.manage.list',
+          'Event',
+          $dao->id
         );
 
         $params = array(
@@ -343,8 +348,13 @@ ORDER BY start_date desc
         $manageEvent[$dao->id]['campaign'] = CRM_Utils_Array::value($dao->campaign_id, $allCampaigns);
         $manageEvent[$dao->id]['reminder'] = CRM_Core_BAO_ActionSchedule::isConfigured($dao->id, $mappingID);
         $manageEvent[$dao->id]['is_pcp_enabled'] = CRM_Utils_Array::value($dao->id, $eventPCPS);
+        $manageEvent[$dao->id]['event_type'] = CRM_Utils_Array::value($manageEvent[$dao->id]['event_type_id'], $eventType);
+        
+        // allow hooks to set 'field' value which allows configuration pop-up to show a tab as enabled/disabled
+        CRM_Utils_Hook::tabset('civicrm/event/manage/rows', $manageEvent, array('event_id' => $dao->id));
       }
     }
+
     $manageEvent['tab'] = self::tabs($enableCart);
     $this->assign('rows', $manageEvent);
 

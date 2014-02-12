@@ -31,10 +31,9 @@
     <weight>410</weight>
   </item>
   <item>
-    <path>civicrm/admin/options/from_email</path>
+    <path>civicrm/admin/options/from_email_address/civimail</path>
     <title>From Email Addresses</title>
     <desc>List of Email Addresses which can be used when sending emails to contacts.</desc>
-    <path_arguments>group=from_email_address</path_arguments>
     <page_callback>CRM_Admin_Page_Options</page_callback>
     <adminGroup>CiviMail</adminGroup>
     <icon>admin/small/title.png</icon>
@@ -69,7 +68,7 @@
   </item>
   <item>
     <path>civicrm/mailing/browse/scheduled</path>
-    <title>Scheduled and Sent Mailings</title>
+    <title>Find Mailings</title>
     <path_arguments>scheduled=true</path_arguments>
     <page_callback>CRM_Mailing_Page_Browse</page_callback>
     <access_arguments>access CiviMail;approve mailings;create mailings;schedule mailings</access_arguments>
@@ -78,7 +77,7 @@
   </item>
   <item>
     <path>civicrm/mailing/browse/unscheduled</path>
-    <title>Draft and Unscheduled Mailings</title>
+    <title>Find Mailings</title>
     <path_arguments>scheduled=false</path_arguments>
     <page_callback>CRM_Mailing_Page_Browse</page_callback>
     <access_arguments>access CiviMail;create mailings;schedule mailings</access_arguments>
@@ -87,7 +86,7 @@
   </item>
   <item>
     <path>civicrm/mailing/browse/archived</path>
-    <title>Archived Mailings</title>
+    <title>Find Mailings</title>
     <page_callback>CRM_Mailing_Page_Browse</page_callback>
     <access_arguments>access CiviMail;create mailings</access_arguments>
     <page_type>1</page_type>

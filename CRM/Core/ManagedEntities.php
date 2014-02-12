@@ -23,6 +23,9 @@ class CRM_Core_ManagedEntities {
     static $singleton;
     if ($fresh || !$singleton) {
       $declarations = array();
+      foreach (CRM_Core_Component::getEnabledComponents() as $component) {
+        $declarations = array_merge($declarations, $component->getManagedEntities());
+      }
       CRM_Utils_Hook::managed($declarations);
       $singleton = new CRM_Core_ManagedEntities(CRM_Core_Module::getAll(), $declarations);
     }
@@ -47,15 +50,15 @@ class CRM_Core_ManagedEntities {
     $dao->name = $name;
     if ($dao->find(TRUE)) {
       $params = array(
-        'version' => 3,
         'id' => $dao->entity_id,
       );
-      $result = civicrm_api($dao->entity_type, 'getsingle', $params);
-      if ($result['is_error']) {
-        $this->onApiError($params, $result);
-      } else {
-        return $result;
+      try {
+        $result = civicrm_api3($dao->entity_type, 'getsingle', $params);
       }
+      catch (Exception $e) {
+        $this->onApiError($params, $result);
+      }
+      return $result;
     } else {
       return NULL;
     }
@@ -99,7 +102,7 @@ class CRM_Core_ManagedEntities {
     $dao->module = $module->name;
     $dao->find();
     while ($dao->fetch()) {
-      if ($todos[$dao->name]) {
+      if (isset($todos[$dao->name]) && $todos[$dao->name]) {
         // update existing entity; remove from $todos
         $defaults = array('id' => $dao->entity_id, 'is_active' => 1); // FIXME: test whether is_active is valid
         $params = array_merge($defaults, $todos[$dao->name]['params']);

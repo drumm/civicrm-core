@@ -17,13 +17,26 @@
  *   create, get, delete or some special action name.
  * @param array $params
  *   array to be passed to function
+ * @param null $extra
+ *
+ * @return array|int
  */
 function civicrm_api($entity, $action, $params, $extra = NULL) {
+  $apiRequest = array();
+  $apiRequest['entity'] = CRM_Utils_String::munge($entity);
+  $apiRequest['action'] = CRM_Utils_String::munge($action);
+  $apiRequest['version'] = civicrm_get_api_version($params);
+  $apiRequest['params'] = $params;
+  $apiRequest['extra'] = $extra;
+
   $apiWrappers = array(
     CRM_Utils_API_HTMLInputCoder::singleton(),
     CRM_Utils_API_NullOutputCoder::singleton(),
     CRM_Utils_API_ReloadOption::singleton(),
+    CRM_Utils_API_MatchOption::singleton(),
   );
+  CRM_Utils_Hook::apiWrappers($apiWrappers,$apiRequest);
+
   try {
     require_once ('api/v3/utils.php');
     require_once 'api/Exception.php';
@@ -32,15 +45,9 @@ function civicrm_api($entity, $action, $params, $extra = NULL) {
     }
     _civicrm_api3_initialize();
     $errorScope = CRM_Core_TemporaryErrorScope::useException();
-    $apiRequest = array();
-    $apiRequest['entity'] = CRM_Utils_String::munge($entity);
-    $apiRequest['action'] = CRM_Utils_String::munge($action);
-    $apiRequest['version'] = civicrm_get_api_version($params);
-    $apiRequest['params'] = $params;
-    $apiRequest['extra'] = $extra;
     // look up function, file, is_generic
     $apiRequest += _civicrm_api_resolve($apiRequest);
-    if (strtolower($action) == 'create' || strtolower($action) == 'delete') {
+    if (strtolower($action) == 'create' || strtolower($action) == 'delete' || strtolower($action) == 'submit') {
       $apiRequest['is_transactional'] = 1;
       $transaction = new CRM_Core_Transaction();
     }
@@ -51,15 +58,15 @@ function civicrm_api($entity, $action, $params, $extra = NULL) {
     }
 
     _civicrm_api3_api_check_permission($apiRequest['entity'], $apiRequest['action'], $apiRequest['params']);
-
+    $fields = _civicrm_api3_api_getfields($apiRequest);
     // we do this before we
-    _civicrm_api3_swap_out_aliases($apiRequest);
+    _civicrm_api3_swap_out_aliases($apiRequest, $fields);
     if (strtolower($action) != 'getfields') {
-      if (!CRM_Utils_Array::value('id', $apiRequest['params'])) {
-        $apiRequest['params'] = array_merge(_civicrm_api3_getdefaults($apiRequest), $apiRequest['params']);
+      if (empty($apiRequest['params']['id'])) {
+        $apiRequest['params'] = array_merge(_civicrm_api3_getdefaults($apiRequest, $fields), $apiRequest['params']);
       }
       //if 'id' is set then only 'version' will be checked but should still be checked for consistency
-      civicrm_api3_verify_mandatory($apiRequest['params'], NULL, _civicrm_api3_getrequired($apiRequest));
+      civicrm_api3_verify_mandatory($apiRequest['params'], NULL, _civicrm_api3_getrequired($apiRequest, $fields));
     }
 
     // For input filtering, process $apiWrappers in forward order
@@ -75,12 +82,12 @@ function civicrm_api($entity, $action, $params, $extra = NULL) {
       $result = $function($apiRequest);
     }
     elseif ($apiRequest['function'] && !$apiRequest['is_generic']) {
-      _civicrm_api3_validate_fields($apiRequest['entity'], $apiRequest['action'], $apiRequest['params']);
+      _civicrm_api3_validate_fields($apiRequest['entity'], $apiRequest['action'], $apiRequest['params'], $fields);
 
       $result = isset($extra) ? $function($apiRequest['params'], $extra) : $function($apiRequest['params']);
     }
     else {
-      return civicrm_api3_create_error("API (" . $apiRequest['entity'] . "," . $apiRequest['action'] . ") does not exist (join the API team and implement it!)");
+      return civicrm_api3_create_error("API (" . $apiRequest['entity'] . ", " . $apiRequest['action'] . ") does not exist (join the API team and implement it!)");
     }
 
     // For output filtering, process $apiWrappers in reverse order
@@ -96,7 +103,7 @@ function civicrm_api($entity, $action, $params, $extra = NULL) {
         return 0;
       }
     }
-    if (CRM_Utils_Array::value('format.only_id', $apiRequest['params']) && isset($result['id'])) {
+    if (!empty($apiRequest['params']['format.only_id']) && isset($result['id'])) {
       return $result['id'];
     }
     if (CRM_Utils_Array::value('is_error', $result, 0) == 0) {
@@ -123,7 +130,7 @@ function civicrm_api($entity, $action, $params, $extra = NULL) {
       $data["error_code"] = DB::errorMessage($error->getCode());
       $data["sql"] = $error->getDebugInfo();
     }
-    if (CRM_Utils_Array::value('debug', $apiRequest['params'])) {
+    if (!empty($apiRequest['params']['debug'])) {
       if(method_exists($e, 'getUserInfo')) {
         $data['debug_info'] = $error->getUserInfo();
       }
@@ -136,7 +143,7 @@ function civicrm_api($entity, $action, $params, $extra = NULL) {
       $data['tip'] = "add debug=1 to your API call to have more info about the error";
     }
     $err = civicrm_api3_create_error($e->getMessage(), $data, $apiRequest);
-    if (CRM_Utils_Array::value('is_transactional', $apiRequest)) {
+    if (!empty($apiRequest['is_transactional'])) {
       $transaction->rollback();
     }
     return $err;
@@ -157,7 +164,7 @@ function civicrm_api($entity, $action, $params, $extra = NULL) {
     ) {
       $err['trace'] = $e->getTraceAsString();
     }
-    if (CRM_Utils_Array::value('is_transactional', $apiRequest)) {
+    if (!empty($apiRequest['is_transactional'])) {
       $transaction->rollback();
     }
     return $err;
@@ -168,10 +175,10 @@ function civicrm_api($entity, $action, $params, $extra = NULL) {
     }
     $data = array();
     $err = civicrm_api3_create_error($e->getMessage(), $data, $apiRequest, $e->getCode());
-    if (CRM_Utils_Array::value('debug', $apiRequest['params'])) {
+    if (!empty($apiRequest['params']['debug'])) {
       $err['trace'] = $e->getTraceAsString();
     }
-    if (CRM_Utils_Array::value('is_transactional', $apiRequest)) {
+    if (!empty($apiRequest['is_transactional'])) {
       $transaction->rollback();
     }
     return $err;
@@ -247,16 +254,18 @@ function _civicrm_api_resolve($apiRequest) {
   $cache[$cachekey] = array('function' => FALSE, 'is_generic' => FALSE);
   return $cache[$cachekey];
 }
+
 /**
  * Version 3 wrapper for civicrm_api. Throws exception
+ *
  * @param string $entity type of entities to deal with
  * @param string $action create, get, delete or some special action name.
  * @param array $params array to be passed to function
  *
+ * @throws CiviCRM_API3_Exception
  * @return array
- *
  */
-function civicrm_api3($entity, $action, $params) {
+function civicrm_api3($entity, $action, $params = array()) {
   $params['version'] = 3;
   $result = civicrm_api($entity, $action, $params);
   if(is_array($result) && !empty($result['is_error'])){
@@ -266,12 +275,45 @@ function civicrm_api3($entity, $action, $params) {
 }
 
 /**
+ * Function to call getfields from api wrapper. This function ensures that settings that could alter
+ * getfields output (e.g. action for all api & profile_id for profile api ) are consistently passed in.
+ *
+ * We check whether the api call is 'getfields' because if getfields is being called we return an empty array
+ * as no alias swapping, validation or default filling is done on getfields & we want to avoid a loop
+ *
+ * @todo other output modifiers include contact_type
+ *
+ * @param array $apiRequest
+ * @return getfields output
+ */
+function _civicrm_api3_api_getfields(&$apiRequest) {
+  if (strtolower($apiRequest['action'] == 'getfields')) {
+    // the main param getfields takes is 'action' - however this param is not compatible with REST
+    // so we accept 'api_action' as an alias of action on getfields
+    if (!empty($apiRequest['params']['api_action'])) {
+    //  $apiRequest['params']['action'] = $apiRequest['params']['api_action'];
+     // unset($apiRequest['params']['api_action']);
+    }
+    return array('action' => array('api.aliases' => array('api_action')));
+  }
+  $getFieldsParams = array('action' => $apiRequest['action']);
+  $entity = $apiRequest['entity'];
+  if($entity == 'profile' && array_key_exists('profile_id', $apiRequest['params'])) {
+    $getFieldsParams['profile_id'] = $apiRequest['params']['profile_id'];
+  }
+  $fields = civicrm_api3($entity, 'getfields', $getFieldsParams);
+  return $fields['values'];
+}
+
+/**
  * Load/require all files related to an entity.
  *
  * This should not normally be called because it's does a file-system scan; it's
  * only appropriate when introspection is really required (eg for "getActions").
  *
  * @param string $entity
+ * @param int $version
+ *
  * @return void
  */
 function _civicrm_api_loadEntity($entity, $version = 3) {
@@ -339,6 +381,7 @@ function civicrm_api_get_function_name($entity, $action, $version = NULL) {
  *   After that, this version number will be used for the remaining request.
  *   This can either be a number, or an array(.., 'version' => $version, ..).
  *   This allows to directly pass the $params array.
+ * @return int
  */
 function civicrm_get_api_version($desired_version = NULL) {
 
@@ -363,7 +406,9 @@ function civicrm_get_api_version($desired_version = NULL) {
  * 'format.is_success' => 1
  * will result in a boolean success /fail being returned if that is what you need.
  *
- * @param  array   $params           (reference ) input parameters
+ * @param $result
+ *
+ * @internal param array $params (reference ) input parameters
  *
  * @return boolean true if error, false otherwise
  * @static void
@@ -399,6 +444,12 @@ function _civicrm_api_get_camel_name($entity, $version = NULL) {
  */
 function _civicrm_api_call_nested_api(&$params, &$result, $action, $entity, $version) {
   $entity = _civicrm_api_get_entity_name_from_camel($entity);
+
+  //we don't need to worry about nested api in the getfields/getoptions actions, so just return immediately
+  if (in_array(strtolower($action), array('getfields', 'getoptions'))) {
+    return;
+  }
+
   if(strtolower($action) == 'getsingle'){
     // I don't understand the protocol here, but we don't want
     // $result to be a recursive array
@@ -462,9 +513,10 @@ function _civicrm_api_call_nested_api(&$params, &$result, $action, $entity, $ver
         $subParams['sequential'] = 1;
         $subParams['api.has_parent'] = 1;
         if (array_key_exists(0, $newparams)) {
+          $genericParams = $subParams;
           // it is a numerically indexed array - ie. multiple creates
-          foreach ($newparams as $entity => $entityparams) {
-            $subParams = array_merge($subParams, $entityparams);
+          foreach ($newparams as $entityparams) {
+            $subParams = array_merge($genericParams, $entityparams);
             _civicrm_api_replace_variables($subAPI[1], $subaction, $subParams, $result['values'][$idIndex], $separator);
             $result['values'][$result['id']][$field][] = civicrm_api($subEntity, $subaction, $subParams);
             if ($result['is_error'] === 1) {
@@ -556,6 +608,7 @@ function _civicrm_api_get_entity_name_from_camel($entity) {
 /**
  * Having a DAO object find the entity name
  * @param object $bao DAO being passed in
+ * @return string
  */
 function _civicrm_api_get_entity_name_from_dao($bao){
   $daoName = str_replace("BAO", "DAO", get_class($bao));

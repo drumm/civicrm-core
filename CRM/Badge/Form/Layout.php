@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -39,10 +39,11 @@
  */
 class CRM_Badge_Form_Layout extends CRM_Admin_Form {
 
+  const FIELD_ROWCOUNT = 6;
   /**
    * Function to build the form
    *
-   * @return None
+   * @return void
    * @access public
    */
   public function buildQuickForm() {
@@ -83,21 +84,30 @@ class CRM_Badge_Form_Layout extends CRM_Admin_Form {
 
     // get the tokens
     $contactTokens = CRM_Core_SelectValues::contactTokens();
-    $eventTokens   = CRM_Core_SelectValues::eventTokens();
+    $eventTokens = array(
+      '{event.event_id}' => ts('Event ID'),
+      '{event.title}' => ts('Event Title'),
+      '{event.start_date}' => ts('Event Start Date'),
+      '{event.end_date}' => ts('Event End Date')
+    );
     $participantTokens = CRM_Core_SelectValues::participantTokens();
 
     $tokens = array_merge($contactTokens, $eventTokens, $participantTokens);
     asort($tokens);
 
+    $tokens = array_merge(array('spacer' => ts('- spacer -')) + $tokens);
+
     $fontSizes = CRM_Core_BAO_LabelFormat::getFontSizes();
+    $fontStyles = CRM_Core_BAO_LabelFormat::getFontStyles();
     $fontNames = CRM_Core_BAO_LabelFormat::getFontNames('name_badge');
     $textAlignment = CRM_Core_BAO_LabelFormat::getTextAlignments();
 
-    $rowCount = 4;
+    $rowCount = self::FIELD_ROWCOUNT;
     for ( $i =1; $i <= $rowCount; $i++ ) {
-      $this->add('select', "token[$i]", ts('Token'), array('' => ts('- none -')) + $tokens);
+      $this->add('select', "token[$i]", ts('Token'), array('' => ts('- skip -')) + $tokens);
       $this->add('select', "font_name[$i]", ts('Font Name'), $fontNames);
       $this->add('select', "font_size[$i]", ts('Font Size'), $fontSizes);
+      $this->add('select', "font_style[$i]", ts('Font Style'), $fontStyles);
       $this->add('select', "text_alignment[$i]", ts('Alignment'), $textAlignment);
     }
     $rowCount++;
@@ -110,16 +120,24 @@ class CRM_Badge_Form_Layout extends CRM_Admin_Form {
 
 
     $attributes = array('readonly'=> true);
-    $this->add('text', 'image_1', ts('Image (top right)'),
+    $this->add('text', 'image_1', ts('Image (top left)'),
       $attributes + CRM_Core_DAO::getAttribute('CRM_Core_DAO_PrintLabel', 'title'));
-    $this->add('text', 'image_2', ts('Image (top left)'),
+    $this->add('text', 'width_image_1', ts('Width (mm)'), array('size' => 6));
+    $this->add('text', 'height_image_1', ts('Height (mm)'), array('size' => 6));
+
+    $this->add('text', 'image_2', ts('Image (top right)'),
       $attributes + CRM_Core_DAO::getAttribute('CRM_Core_DAO_PrintLabel', 'title'));
+    $this->add('text', 'width_image_2', ts('Width (mm)'), array('size' => 6));
+    $this->add('text', 'height_image_2', ts('Height (mm)'), array('size' => 6));
 
     $this->add('checkbox', 'is_default', ts('Default?'));
     $this->add('checkbox', 'is_active', ts('Enabled?'));
     $this->add('checkbox', 'is_reserved', ts('Reserved?'));
 
-    $this->addFormRule(array('CRM_Badge_Form_Layout', 'formRule'));
+    $this->addRule('width_image_1', ts('Enter valid width'), 'positiveInteger');
+    $this->addRule('width_image_2', ts('Enter valid width'), 'positiveInteger');
+    $this->addRule('height_image_1', ts('Enter valid height'), 'positiveInteger');
+    $this->addRule('height_image_2', ts('Enter valid height'), 'positiveInteger');
 
     $this->addButtons(array(
         array(
@@ -140,38 +158,12 @@ class CRM_Badge_Form_Layout extends CRM_Admin_Form {
   }
 
   /**
-   * form rule
-   *
-   * @param array $fields  the input form values
-   *
-   * @return true if no errors, else array of errors
-   * @access public
-   * @static
-   */
-  static function formRule($fields) {
-    $errors = array();
-
-    if (CRM_Utils_Array::value(4, $fields['token'])
-      && CRM_Utils_Array::value('add_barcode', $fields)
-      && (CRM_Utils_Array::value('barcode_alignment', $fields) == CRM_Utils_Array::value(4, $fields['text_alignment']))
-    ) {
-      $errors['barcode_alignment'] = ts('You cannot have same alignment for barcode and #4 row.');
-    }
-
-    if (!empty($errors)) {
-      return $errors;
-    }
-
-    return empty($errors) ? TRUE : $errors;
-  }
-
-  /**
    * This function sets the default values for the form. MobileProvider that in edit/view mode
    * the default values are retrieved from the database
    *
    * @access public
    *
-   * @return None
+   * @return void
    */
   function setDefaultValues() {
     if (isset($this->_id)) {
@@ -179,7 +171,7 @@ class CRM_Badge_Form_Layout extends CRM_Admin_Form {
         CRM_Badge_BAO_Layout::getDecodedData($this->_values['data']));
     }
     else {
-      for ($i = 1; $i <= 4; $i++) {
+      for ($i = 1; $i <= self::FIELD_ROWCOUNT; $i++) {
         $defaults['text_alignment'][$i] = "C";
       }
     }
@@ -199,7 +191,7 @@ class CRM_Badge_Form_Layout extends CRM_Admin_Form {
    *
    * @access public
    *
-   * @return None
+   * @return void
    */
   public function postProcess() {
     if ($this->_action & CRM_Core_Action::DELETE) {

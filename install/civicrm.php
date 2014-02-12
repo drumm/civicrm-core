@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -35,12 +35,6 @@
 function civicrm_setup($filesDirectory) {
   global $crmPath, $sqlPath, $pkgPath, $tplPath;
   global $compileDir;
-
-  $pkgPath = $crmPath . DIRECTORY_SEPARATOR . 'packages';
-  set_include_path($crmPath . PATH_SEPARATOR .
-    $pkgPath . PATH_SEPARATOR .
-    get_include_path()
-  );
 
   $sqlPath = $crmPath . DIRECTORY_SEPARATOR . 'sql';
   $tplPath = $crmPath . DIRECTORY_SEPARATOR . 'templates' . DIRECTORY_SEPARATOR . 'CRM' . DIRECTORY_SEPARATOR . 'common' . DIRECTORY_SEPARATOR;
@@ -123,13 +117,13 @@ function civicrm_main(&$config) {
 
 function civicrm_source($dsn, $fileName, $lineMode = FALSE) {
   global $crmPath;
-
   require_once "$crmPath/packages/DB.php";
 
   $db = DB::connect($dsn);
   if (PEAR::isError($db)) {
     die("Cannot open $dsn: " . $db->getMessage());
   }
+  $db->query("SET NAMES utf8");
 
   if (!$lineMode) {
     $string = file_get_contents($fileName);

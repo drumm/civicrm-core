@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -83,14 +83,12 @@ class CRM_Admin_Page_Job extends CRM_Core_Page_Basic {
         ),
         CRM_Core_Action::DISABLE => array(
           'name' => ts('Disable'),
-          'extra' => 'onclick = "enableDisable( %%id%%,\'' . 'CRM_Core_BAO_Job' . '\',\'' . 'enable-disable' . '\' );"',
-          'ref' => 'disable-action',
+          'ref' => 'crm-enable-disable',
           'title' => ts('Disable Scheduled Job'),
         ),
         CRM_Core_Action::ENABLE => array(
           'name' => ts('Enable'),
-          'extra' => 'onclick = "enableDisable( %%id%%,\'' . 'CRM_Core_BAO_Job' . '\',\'' . 'disable-enable' . '\' );"',
-          'ref' => 'enable-action',
+          'ref' => 'crm-enable-disable',
           'title' => ts('Enable Scheduled Job'),
         ),
         CRM_Core_Action::DELETE => array(
@@ -177,7 +175,12 @@ class CRM_Admin_Page_Job extends CRM_Core_Page_Basic {
       }
 
       $job->action = CRM_Core_Action::formLink(self::links(), $action,
-        array('id' => $job->id)
+        array('id' => $job->id),
+        ts('more'),
+        FALSE,
+        'job.manage.action',
+        'Job',
+        $job->id
       );
       $rows[] = get_object_vars($job);
     }

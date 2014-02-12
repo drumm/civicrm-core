@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -105,6 +105,20 @@ class CRM_Core_Page {
   static protected $_session;
 
   /**
+   * What to return to the client if in ajax mode (snippet=json)
+   *
+   * @var array
+   */
+  public $ajaxResponse = array();
+
+  /**
+   * Url path used to reach this page
+   *
+   * @var array
+   */
+  public $urlPath = array();
+
+  /**
    * class constructor
    *
    * @param string $title title of the page
@@ -123,12 +137,18 @@ class CRM_Core_Page {
       self::$_session = CRM_Core_Session::singleton();
     }
 
-    if (isset($_REQUEST['snippet']) && $_REQUEST['snippet']) {
-      if ($_REQUEST['snippet'] == 3) {
+    // FIXME - why are we messing with 'snippet'? Why not just pass it directly into $this->_print?
+    if (!empty($_REQUEST['snippet'])) {
+      if ($_REQUEST['snippet'] == CRM_Core_Smarty::PRINT_PDF) {
         $this->_print = CRM_Core_Smarty::PRINT_PDF;
       }
-      else if ($_REQUEST['snippet'] == 5) {
+      // FIXME - why does this number not match the constant?
+      elseif ($_REQUEST['snippet'] == 5) {
         $this->_print = CRM_Core_Smarty::PRINT_NOFORM;
+      }
+      // Support 'json' as well as legacy value '6'
+      elseif (in_array($_REQUEST['snippet'], array(CRM_Core_Smarty::PRINT_JSON, 6))) {
+        $this->_print = CRM_Core_Smarty::PRINT_JSON;
       }
       else {
         $this->_print = CRM_Core_Smarty::PRINT_SNIPPET;
@@ -136,7 +156,7 @@ class CRM_Core_Page {
     }
 
     // if the request has a reset value, initialize the controller session
-    if (CRM_Utils_Array::value('reset', $_REQUEST)) {
+    if (!empty($_REQUEST['reset'])) {
       $this->reset();
     }
   }
@@ -155,7 +175,7 @@ class CRM_Core_Page {
 
     self::$_template->assign('mode', $this->_mode);
 
-    $pageTemplateFile = $this->getTemplateFileName();
+    $pageTemplateFile = $this->getHookedTemplateFileName();
     self::$_template->assign('tplFile', $pageTemplateFile);
 
     // invoke the pagRun hook, CRM-3906
@@ -163,7 +183,7 @@ class CRM_Core_Page {
 
     if ($this->_print) {
       if (in_array( $this->_print, array( CRM_Core_Smarty::PRINT_SNIPPET,
-        CRM_Core_Smarty::PRINT_PDF, CRM_Core_Smarty::PRINT_NOFORM ))) {
+        CRM_Core_Smarty::PRINT_PDF, CRM_Core_Smarty::PRINT_NOFORM, CRM_Core_Smarty::PRINT_JSON ))) {
         $content = self::$_template->fetch('CRM/common/snippet.tpl');
       }
       else {
@@ -183,6 +203,10 @@ class CRM_Core_Page {
           array('paper_size' => 'a3', 'orientation' => 'landscape')
         );
       }
+      elseif ($this->_print == CRM_Core_Smarty::PRINT_JSON) {
+        $this->ajaxResponse['content'] = $content;
+        CRM_Core_Page_AJAX::returnJsonResponse($this->ajaxResponse);
+      }
       else {
         echo $content;
       }
@@ -195,6 +219,7 @@ class CRM_Core_Page {
     if (empty($_GET['snippet'])) {
       // Version check and intermittent alert to admins
       CRM_Utils_VersionCheck::singleton()->versionAlert();
+      CRM_Utils_Check_Security::singleton()->showPeriodicAlerts();
 
       // Debug msg once per hour
       if ($config->debug && CRM_Core_Permission::check('administer CiviCRM') && CRM_Core_Session::singleton()->timer('debug_alert', 3600)) {
@@ -274,6 +299,28 @@ class CRM_Core_Page {
   }
 
   /**
+   * appends values to template variables
+   *
+   * @param array|string $tpl_var the template variable name(s)
+   * @param mixed $value the value to append
+   * @param bool $merge
+   */
+  function append($tpl_var, $value=NULL, $merge=FALSE) {
+    self::$_template->append($tpl_var, $value, $merge);
+  }
+
+  /**
+   * Returns an array containing template variables
+   *
+   * @param string $name
+   * @param string $type
+   * @return array
+   */
+  function get_template_vars($name=null) {
+    return self::$_template->get_template_vars($name);
+  }
+
+  /**
    * function to destroy all the session state of this page.
    *
    * @access public
@@ -295,6 +342,16 @@ class CRM_Core_Page {
       DIRECTORY_SEPARATOR,
       CRM_Utils_System::getClassName($this)
     ) . '.tpl';
+  }
+
+  /**
+   * A wrapper for getTemplateFileName that includes calling the hook to
+   * prevent us from having to copy & paste the logic of calling the hook
+   */
+  function getHookedTemplateFileName() {
+    $pageTemplateFile = $this->getTemplateFileName();
+    CRM_Utils_Hook::alterTemplateFile(get_class($this), $this, 'page', $pageTemplateFile);
+    return $pageTemplateFile;
   }
 
   /**

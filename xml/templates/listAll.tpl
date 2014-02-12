@@ -2,7 +2,7 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -39,9 +39,9 @@ class CRM_Core_DAO_AllCoreTables {ldelim}
   static private $tables = null;
   static private $daoToClass = null;
 
-  static private function init() {ldelim}
+  static private function init($fresh = FALSE) {ldelim}
     static $init = FALSE;
-    if ($init) return;
+    if ($init && !$fresh) return;
 
     $entityTypes = array(
 {foreach from=$tables key=tableName item=table}
@@ -115,5 +115,8 @@ class CRM_Core_DAO_AllCoreTables {ldelim}
     return array_search(self::getCanonicalClassName($className), self::tables());
   {rdelim}
 
+  static public function reinitializeCache($fresh = FALSE) {ldelim}
+    self::init($fresh);
+  {rdelim}
 
 {rdelim}

@@ -1,6 +1,6 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -73,11 +73,11 @@
     var flashChartType = {/literal}{if $chartType}'{$chartType}'{else}''{/if}{literal};
     function disablePrintPDFButtons( viewtype ) {
       if (viewtype && flashChartType != viewtype) {
-        cj('#_qf_Summary_submit_pdf').attr('disabled', true).addClass('button-disabled');
-  cj('#_qf_Summary_submit_print').attr('disabled', true).addClass('button-disabled');
+        cj('#_qf_Summary_submit_pdf').prop('disabled', true).addClass('button-disabled');
+  cj('#_qf_Summary_submit_print').prop('disabled', true).addClass('button-disabled');
       } else {
-        cj('#_qf_Summary_submit_pdf').removeAttr('disabled').removeClass('button-disabled');
-  cj('#_qf_Summary_submit_print').removeAttr('disabled').removeClass('button-disabled');
+        cj('#_qf_Summary_submit_pdf').prop('disabled', false).removeClass('button-disabled');
+  cj('#_qf_Summary_submit_print').prop('disabled', false).removeClass('button-disabled');
       }
     }
     </script>

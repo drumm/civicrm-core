@@ -29,9 +29,12 @@
   </foreignKey>
   <field>
        <name>group_type</name>
-       <type>enum</type>
-       <values>Include, Exclude, Base</values>
+       <type>varchar</type>
+       <length>8</length>
        <comment>Are the members of the group included or excluded?.</comment>
+       <html>
+         <type>Select</type>
+       </html>
   </field>
   <field>
        <name>entity_table</name>

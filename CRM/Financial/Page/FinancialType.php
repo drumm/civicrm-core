@@ -1,7 +1,7 @@
 <?php
 /*
   +--------------------------------------------------------------------+
-  | CiviCRM version 4.3                                                |
+  | CiviCRM version 4.4                                                |
   +--------------------------------------------------------------------+
   | Copyright CiviCRM LLC (c) 2004-2013                                |
   +--------------------------------------------------------------------+
@@ -76,14 +76,12 @@ class CRM_Financial_Page_FinancialType extends CRM_Core_Page_Basic {
         ),
         CRM_Core_Action::DISABLE => array(
           'name'  => ts('Disable'),
-          'extra' => 'onclick = "enableDisable( %%id%%,\''. 'CRM_Financial_BAO_FinancialType' . '\',\'' . 'enable-disable' . '\' );"',
-          'ref'   => 'disable-action',
+          'ref'   => 'crm-enable-disable',
           'title' => ts('Disable Financial Type'),
         ),
         CRM_Core_Action::ENABLE  => array(
           'name'  => ts('Enable'),
-          'extra' => 'onclick = "enableDisable( %%id%%,\''. 'CRM_Financial_BAO_FinancialType' . '\',\'' . 'disable-enable' . '\' );"',
-          'ref'   => 'enable-action',
+          'ref'   => 'crm-enable-disable',
           'title' => ts('Enable Financial Type'),
         ),
         CRM_Core_Action::DELETE  => array(
@@ -134,6 +132,7 @@ class CRM_Financial_Page_FinancialType extends CRM_Core_Page_Basic {
    * @static
    */
   function browse() {
+    CRM_Core_Resources::singleton()->addScriptFile('civicrm', 'js/crm.livePage.js');
     // get all financial types sorted by weight
     $financialType = array();
     $dao = new CRM_Financial_DAO_FinancialType();
@@ -152,7 +151,7 @@ class CRM_Financial_Page_FinancialType extends CRM_Core_Page_Basic {
       CRM_Financial_BAO_FinancialTypeAccount::retrieve($params, CRM_Core_DAO::$_nullArray, $financialAccountIds);
 
       foreach( $financialAccountIds as $key => $values){
-        if (CRM_Utils_Array::value($values['financial_account_id'], $financialAccounts)) {
+        if (!empty($financialAccounts[$values['financial_account_id']])) {
           $financialAccountId[$values['financial_account_id']] = CRM_Utils_Array::value(
             $values['financial_account_id'], $financialAccounts );
         }
@@ -182,7 +181,13 @@ class CRM_Financial_Page_FinancialType extends CRM_Core_Page_Basic {
       }
 
       $financialType[$dao->id]['action'] = CRM_Core_Action::formLink(self::links(), $action,
-        array('id' => $dao->id));
+        array('id' => $dao->id),
+        ts('more'),
+        FALSE,
+        'financialType.manage.action',
+        'FinancialType',
+        $dao->id
+      );
     }
     $this->assign('rows', $financialType);
   }

@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -88,7 +88,7 @@ class CRM_Core_BAO_CustomGroup extends CRM_Core_DAO_CustomGroup {
     //this is format when form get submit.
     $extendsChildType = CRM_Utils_Array::value(1, $params['extends']);
     //lets allow user to pass direct child type value, CRM-6893
-    if (CRM_Utils_Array::value('extends_entity_column_value', $params)) {
+    if (!empty($params['extends_entity_column_value'])) {
       $extendsChildType = $params['extends_entity_column_value'];
     }
     if (!CRM_Utils_System::isNull($extendsChildType)) {
@@ -129,7 +129,7 @@ class CRM_Core_BAO_CustomGroup extends CRM_Core_DAO_CustomGroup {
         'is_multiple'
       );
 
-      if ((CRM_Utils_Array::value('is_multiple', $params) || $isMultiple) &&
+      if ((!empty($params['is_multiple']) || $isMultiple) &&
         ($params['is_multiple'] != $isMultiple)
       ) {
         $oldTableName = CRM_Core_DAO::getFieldValue('CRM_Core_DAO_CustomGroup',
@@ -166,7 +166,7 @@ class CRM_Core_BAO_CustomGroup extends CRM_Core_DAO_CustomGroup {
     $group->save();
     if (!isset($params['id'])) {
       if (!isset($params['table_name'])) {
-        $munged_title = strtolower(CRM_Utils_String::munge($group->title, '_', 32));
+        $munged_title = strtolower(CRM_Utils_String::munge($group->title, '_', 42));
         $tableName = "civicrm_value_{$munged_title}_{$group->id}";
       }
       $group->table_name = $tableName;
@@ -748,7 +748,12 @@ ORDER BY civicrm_custom_group.weight,
               'id' => $fileDAO->id,
               'eid' => $dao->$entityIDName,
               'fid' => $fieldID,
-            )
+            ),
+            ts('more'),
+            FALSE,
+            'file.manage.delete',
+            'File',
+            $fileDAO->id
           );
           $customValue['deleteURLArgs'] = CRM_Core_BAO_File::deleteURLArgs($table, $dao->$entityIDName, $fileDAO->id);
           $customValue['fileName'] = CRM_Utils_File::cleanFileName(basename($fileDAO->uri));
@@ -1454,39 +1459,28 @@ ORDER BY civicrm_custom_group.weight,
   /**
    * generic function to build all the form elements for a specific group tree
    *
-   * @param CRM_Core_Form $form      the form object
-   * @param array         $groupTree the group tree object
-   * @param string        $showName
-   * @param string        $hideName
+   * @param object    $form             the form object
+   * @param array     $groupTree        the group tree object
+   * @param boolean   $inactiveNeeded   return inactive custom groups
+   * @param string    $prefix           prefix for custom grouptree assigned to template
    *
    * @return void
    * @access public
    * @static
    */
-  static function buildQuickForm(&$form,
-    &$groupTree,
-    $inactiveNeeded = FALSE,
-    $groupCount     = 1,
-    $prefix         = ''
-  ) {
-
+  static function buildQuickForm(&$form, &$groupTree, $inactiveNeeded = FALSE, $prefix = '' ) {
     $form->assign_by_ref("{$prefix}groupTree", $groupTree);
-    $sBlocks = array();
-    $hBlocks = array();
 
     // this is fix for date field
     $form->assign('currentYear', date('Y'));
 
     foreach ($groupTree as $id => $group) {
-
       CRM_Core_ShowHideBlocks::links($form, $group['title'], '', '');
-
-      $groupId = CRM_Utils_Array::value('id', $group);
       foreach ($group['fields'] as $field) {
         $required = CRM_Utils_Array::value('is_required', $field);
         //fix for CRM-1620
         if ($field['data_type'] == 'File') {
-          if (isset($field['customValue']['data'])) {
+          if (!empty($field['element_value']['data'])) {
             $required = 0;
           }
         }
@@ -1495,6 +1489,13 @@ ORDER BY civicrm_custom_group.weight,
         $elementName = $field['element_name'];
         CRM_Core_BAO_CustomField::addQuickFormElement($form, $elementName, $fieldId, $inactiveNeeded, $required);
       }
+    }
+    if (!empty($form->_stateCountryMap['state_province']) && !empty($form->_stateCountryMap['country'])) {
+      foreach ($form->_stateCountryMap['state_province'] as $key => $value) {
+        $stateCountryMap[$key]['state_province'] = $value;
+        $stateCountryMap[$key]['country'] = $form->_stateCountryMap['country'][$key];
+      }
+      CRM_Core_BAO_Address::addStateCountryMap($stateCountryMap);
     }
   }
 
@@ -1573,11 +1574,11 @@ ORDER BY civicrm_custom_group.weight,
           elseif ($field['data_type'] == 'Date') {
             if (!empty($value)) {
               $time = NULL;
-              if (CRM_Utils_Array::value('time_format', $field)) {
+              if (!empty($field['time_format'])) {
                 $time = CRM_Utils_Request::retrieve($fieldName . '_time', 'String', $form, FALSE, NULL, 'GET');
               }
               list($value, $time) = CRM_Utils_Date::setDateDefaults($value . ' ' . $time);
-              if (CRM_Utils_Array::value('time_format', $field)) {
+              if (!empty($field['time_format'])) {
                 $customValue[$fieldName . '_time'] = $time;
               }
             }
@@ -1922,7 +1923,7 @@ SELECT IF( EXISTS(SELECT name FROM civicrm_contact_type WHERE name like %1), 1, 
         break;
 
       case 'ContactReference':
-        if (CRM_Utils_Array::value('data', $values)) {
+        if (!empty($values['data'])) {
           $retValue = CRM_Core_DAO::getFieldValue('CRM_Contact_DAO_Contact', $values['data'], 'display_name');
         }
         break;
@@ -2003,7 +2004,17 @@ SELECT IF( EXISTS(SELECT name FROM civicrm_contact_type WHERE name like %1), 1, 
 
                 if (is_object($coDAO)) {
                   while ($coDAO->fetch()) {
-                    $options[$coDAO->value] = $coDAO->label;
+                    if ($dataType == 'Country') {
+                      // NB: using ts() on a variable here is OK, since the value is pre-determined, not variable
+                      // and already extracted to .pot files.
+                      $options[$coDAO->value] = ts($coDAO->label, array('context' => 'country'));
+                    }
+                    elseif ($dataType == 'StateProvince') {
+                      $options[$coDAO->value] = ts($coDAO->label, array('context' => 'province'));
+                    }
+                    else {
+                      $options[$coDAO->value] = $coDAO->label;
+                    }
                   }
                 }
 
@@ -2199,6 +2210,17 @@ SELECT  civicrm_custom_group.id as groupID, civicrm_custom_group.title as groupT
       }
     }
     return $hasReachedMax;
+  }
+
+  static function getMultipleFieldGroup() {
+    $multipleGroup = array();
+    $dao = new CRM_Core_DAO_CustomGroup();
+    $dao->is_multiple = 1 ;
+    $dao->find();
+    while($dao->fetch()) {
+      $multipleGroup[$dao->id] = $dao->title;
+    }
+    return $multipleGroup;
   }
 
  }

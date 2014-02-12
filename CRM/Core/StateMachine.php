@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -267,7 +267,7 @@ class CRM_Core_StateMachine {
 
     $this->_pageNames = array();
     foreach ($pages as $tempName => $value) {
-      if (CRM_Utils_Array::value('className', $value)) {
+      if (!empty($value['className'])) {
         $this->_pageNames[] = $tempName;
       }
       else {

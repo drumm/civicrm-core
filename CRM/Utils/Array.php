@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -519,7 +519,7 @@ class CRM_Utils_Array {
         } else {
           $keyvalue = $record->{$key};
         }
-        if (!is_array($node[$keyvalue])) {
+        if (isset($node[$keyvalue]) && !is_array($node[$keyvalue])) {
           $node[$keyvalue] = array();
         }
         $node = &$node[$keyvalue];
@@ -570,29 +570,37 @@ class CRM_Utils_Array {
   /**
    * Like explode() but assumes that the $value is padded with $delim on left and right
    *
-   * @param string|NULL $value
+   * @param mixed $values
    * @param string $delim
    * @return array|NULL
    */
-  static function explodePadded($value, $delim = CRM_Core_DAO::VALUE_SEPARATOR) {
-    if ($value === NULL) {
+  static function explodePadded($values, $delim = CRM_Core_DAO::VALUE_SEPARATOR) {
+    if ($values === NULL) {
       return NULL;
     }
-    return explode($delim, trim($value, $delim));
+    // If we already have an array, no need to continue
+    if (is_array($values)) {
+      return $values;
+    }
+    return explode($delim, trim((string) $values, $delim));
   }
 
   /**
-   * Like implode() but assumes that the $value is padded with $delim on left and right
+   * Like implode() but creates a string that is padded with $delim on left and right
    *
-   * @param string|NULL $value
+   * @param mixed $values
    * @param string $delim
-   * @return array|NULL
+   * @return string|NULL
    */
   static function implodePadded($values, $delim = CRM_Core_DAO::VALUE_SEPARATOR) {
     if ($values === NULL) {
       return NULL;
     }
-    return $delim . implode($delim, $values) . $delim;
+    // If we already have a string, strip $delim off the ends so it doesn't get added twice
+    if (is_string($values)) {
+      $values = trim($values, $delim);
+    }
+    return $delim . implode($delim, (array) $values) . $delim;
   }
 
   /**
@@ -613,6 +621,62 @@ class CRM_Utils_Array {
     $keys[$index] = $newKey;
     $elementArray = array_combine($keys, array_values($elementArray));
     return $elementArray;
+  }
+
+  /*
+   * function to get value of first matched
+   * regex key element of an array
+   */
+  static function valueByRegexKey($regexKey, $list, $default = NULL) {
+    if (is_array($list) && $regexKey) {
+      $matches = preg_grep($regexKey, array_keys($list));
+      $key = reset($matches);
+      return ($key && array_key_exists($key, $list)) ? $list[$key] : $default;
+    }
+    return $default;
+  }
+
+  /**
+   * Generate the Cartesian product of zero or more vectors
+   *
+   * @param array $dimensions list of dimensions to multiply; each key is a dimension name; each value is a vector
+   * @param array $template a base set of values included in every output
+   * @return array each item is a distinct combination of values from $dimensions
+   *
+   * For example, the product of
+   * {
+   *   fg => {red, blue},
+   *   bg => {white, black}
+   * }
+   * would be
+   * {
+   *   {fg => red, bg => white},
+   *   {fg => red, bg => black},
+   *   {fg => blue, bg => white},
+   *   {fg => blue, bg => black}
+   * }
+   */
+  static function product($dimensions, $template = array()) {
+    if (empty($dimensions)) {
+      return array($template);
+    }
+
+    foreach ($dimensions as $key => $value) {
+      $firstKey = $key;
+      $firstValues = $value;
+      break;
+    }
+    unset($dimensions[$key]);
+
+    $results = array();
+    foreach ($firstValues as $firstValue) {
+      foreach (self::product($dimensions, $template) as $result) {
+        $result[$firstKey] = $firstValue;
+        $results[] = $result;
+      }
+    }
+
+    return $results;
   }
 }
 

@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -151,7 +151,7 @@ class CRM_Utils_Sort {
    * @access public
    */
   function orderBy() {
-    if (!CRM_Utils_Array::value($this->_currentSortID, $this->_vars)) {
+    if (empty($this->_vars[$this->_currentSortID])) {
       return '';
     }
 

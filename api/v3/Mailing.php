@@ -2,7 +2,7 @@
 
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -67,7 +67,7 @@ function _civicrm_api3_mailing_create_spec(&$params) {
 }
 
 /**
- * Handle a create event.
+ * Handle a delete event.
  *
  * @param array $params
  * @return array API Success Array

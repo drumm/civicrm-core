@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -166,7 +166,7 @@ class CRM_Badge_BAO_Layout extends CRM_Core_DAO_PrintLabel {
     CRM_Badge_BAO_Layout::retrieve($layoutParams, $layoutInfo);
 
     $formatProperties = CRM_Core_OptionGroup::getValue('name_badge', $layoutInfo['label_format_name'], 'name');
-    $layoutInfo['format'] = get_object_vars(json_decode($formatProperties));
+    $layoutInfo['format'] = json_decode($formatProperties, true);
     $layoutInfo['data'] = CRM_Badge_BAO_Layout::getDecodedData($layoutInfo['data']);
     return $layoutInfo;
   }
@@ -176,25 +176,11 @@ class CRM_Badge_BAO_Layout extends CRM_Core_DAO_PrintLabel {
    *
    * @param json $jsonData json object
    *
-   * @return array $dataValues associated array of decoded elements
+   * @return array associated array of decoded elements
    * @static
    */
   static public function getDecodedData($jsonData) {
-    $data = get_object_vars(json_decode($jsonData));
-
-    $specialFields = array('token', 'font_name', 'font_size', 'text_alignment');
-    foreach($specialFields as $field) {
-      $dataValues[$field] = get_object_vars($data[$field]);
-    }
-
-    $dataValues['add_barcode'] = CRM_Utils_Array::value('add_barcode', $data);
-    $dataValues['barcode_alignment'] = CRM_Utils_Array::value('barcode_alignment', $data);
-    $dataValues['barcode_type'] = CRM_Utils_Array::value('barcode_type', $data);
-
-    $dataValues['image_1'] = CRM_Utils_Array::value('image_1', $data);
-    $dataValues['image_2'] = CRM_Utils_Array::value('image_2', $data);
-
-    return $dataValues;
+    return json_decode($jsonData, true);
   }
 }
 

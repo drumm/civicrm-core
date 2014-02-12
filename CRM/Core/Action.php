@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -217,30 +217,34 @@ class CRM_Core_Action {
       return NULL;
     }
 
+    // make links indexed sequentially instead of by bitmask
+    // otherwise it's next to impossible to reliably add new ones
+    $seqLinks = array();
+    foreach ($links as $bit => $link) {
+      $link['bit'] = $bit;
+      $seqLinks[] = $link;
+    }
 
     if ($op && $objectName && $objectId) {
-      CRM_Utils_Hook::links($op, $objectName, $objectId, $links, $mask);
+      CRM_Utils_Hook::links($op, $objectName, $objectId, $seqLinks, $mask, $values);
     }
 
     $url = array();
 
     $firstLink = TRUE;
-    foreach ($links as $m => $link) {
-      if (!$mask || ($mask & $m)) {
+    foreach ($seqLinks as $link) {
+      if (!$mask || !array_key_exists('bit', $link) || ($mask & $link['bit'])) {
         $extra = isset($link['extra']) ? self::replace($link['extra'], $values) : NULL;
 
         $frontend = (isset($link['fe'])) ? TRUE : FALSE;
 
-        $urlPath = NULL;
-        if (CRM_Utils_Array::value('qs', $link) &&
-          !CRM_Utils_System::isNull($link['qs'])
-        ) {
+        if (isset($link['qs']) && !CRM_Utils_System::isNull($link['qs'])) {
           $urlPath = CRM_Utils_System::url(self::replace($link['url'], $values),
             self::replace($link['qs'], $values), TRUE, NULL, TRUE, $frontend
           );
         }
         else {
-          $urlPath = CRM_Utils_Array::value('url', $link);
+          $urlPath = CRM_Utils_Array::value('url', $link, '#');
         }
 
         $classes = 'action-item';
@@ -261,26 +265,17 @@ class CRM_Core_Action {
           $classes .= ' ' . strtolower($className);
         }
 
-        $linkClasses = 'class = "' . $classes . '"';
+        $linkClasses = 'class="' . $classes . '"';
 
-        if ($urlPath) {
-          if ($frontend) {
-            $extra .= "target=_blank";
-          }
-          $url[] = sprintf('<a href="%s" %s title="%s"' . $extra . '>%s</a>',
-            $urlPath,
-            $linkClasses,
-            CRM_Utils_Array::value('title', $link),
-            $link['name']
-          );
+        if ($urlPath !== '#' && $frontend) {
+          $extra .= ' target="_blank"';
         }
-        else {
-          $url[] = sprintf('<a title="%s"  %s ' . $extra . '>%s</a>',
-            CRM_Utils_Array::value('title', $link),
-            $linkClasses,
-            $link['name']
-          );
-        }
+        $url[] = sprintf('<a href="%s" %s title="%s" ' . $extra . '>%s</a>',
+          $urlPath,
+          $linkClasses,
+          CRM_Utils_Array::value('title', $link),
+          $link['name']
+        );
       }
     }
 

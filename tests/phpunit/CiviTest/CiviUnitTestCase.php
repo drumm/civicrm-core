@@ -148,6 +148,7 @@ class CiviUnitTestCase extends PHPUnit_Extensions_Database_TestCase {
 
     //  create test database
     self::$utils = new Utils($GLOBALS['mysql_host'],
+      $GLOBALS['mysql_port'],
       $GLOBALS['mysql_user'],
       $GLOBALS['mysql_pass']
     );
@@ -330,6 +331,7 @@ class CiviUnitTestCase extends PHPUnit_Extensions_Database_TestCase {
     // FIXME: look at it closer in second stage
 
     // initialize the object once db is loaded
+    CRM_Core_Config::$_mail = NULL;
     $config = CRM_Core_Config::singleton();
 
     // when running unit tests, use mockup user framework
@@ -405,6 +407,7 @@ class CiviUnitTestCase extends PHPUnit_Extensions_Database_TestCase {
    */
   function foreignKeyChecksOff() {
     self::$utils = new Utils($GLOBALS['mysql_host'],
+      $GLOBALS['mysql_port'],
       $GLOBALS['mysql_user'],
       $GLOBALS['mysql_pass']
     );
@@ -579,7 +582,7 @@ class CiviUnitTestCase extends PHPUnit_Extensions_Database_TestCase {
   function assertAttributesEquals($expectedValues, $actualValues, $message = NULL) {
     foreach ($expectedValues as $paramName => $paramValue) {
       if (isset($actualValues[$paramName])) {
-        $this->assertEquals($paramValue, $actualValues[$paramName], "Value Mismatch On $paramName - value 1 is $paramValue  value 2 is {$actualValues[$paramName]}");
+        $this->assertEquals($paramValue, $actualValues[$paramName], "Value Mismatch On $paramName - value 1 is " . print_r($paramValue, TRUE) . "  value 2 is " . print_r($actualValues[$paramName], TRUE) );
       }
       else {
         $this->fail("Attribute '$paramName' not present in actual array.");
@@ -793,6 +796,7 @@ class CiviUnitTestCase extends PHPUnit_Extensions_Database_TestCase {
     }
     return $result;
   }
+
   /**
    * This function exists to wrap api functions
    * so we can ensure they succeed, generate and example & throw exceptions without litterering the test with checks
@@ -802,6 +806,10 @@ class CiviUnitTestCase extends PHPUnit_Extensions_Database_TestCase {
    * @param array $params
    * @param string $function - pass this in to create a generated example
    * @param string $file - pass this in to create a generated example
+   * @param string $description
+   * @param string|null $subfile
+   * @param string|null $actionName
+   * @return array|int
    */
   function callAPIAndDocument($entity, $action, $params, $function, $file, $description = "", $subfile = NULL, $actionName = NULL){
     $params['version'] = $this->_apiversion;
@@ -875,7 +883,7 @@ class CiviUnitTestCase extends PHPUnit_Extensions_Database_TestCase {
         'suffix_id' => 3,
         'email' => 'anthony_anderson@civicrm.org',
         'contact_type' => 'Individual',
-      ),$params);
+      ), $params);
 
     return $this->_contactCreate($params);
   }
@@ -887,28 +895,27 @@ class CiviUnitTestCase extends PHPUnit_Extensions_Database_TestCase {
    *
    * @return int    id of Household created
    */
-  function householdCreate($params = NULL) {
-    if ($params === NULL) {
-      $params = array(
+  function householdCreate($params =  array()) {
+    $params = array_merge(array(
         'household_name' => 'Unit Test household',
         'contact_type' => 'Household',
-      );
-    }
+      ), $params);
     return $this->_contactCreate($params);
   }
 
   /**
    * Private helper function for calling civicrm_contact_add
    *
-   * @param array   parameters for civicrm_contact_add api function call
+   * @param $params
+   *
+   * @throws Exception
+   * @internal param \parameters $array for civicrm_contact_add api function call
    *
    * @return int    id of Household created
    */
   private function _contactCreate($params) {
     $result = $this->callAPISuccess('contact', 'create', $params);
-    if (CRM_Utils_Array::value('is_error', $result) ||
-      !CRM_Utils_Array::value('id', $result)
-    ) {
+    if (!empty($result['is_error']) || empty($result['id'])) {
       throw new Exception('Could not create test contact, with message: ' . CRM_Utils_Array::value('error_message', $result) . "\nBacktrace:" . CRM_Utils_Array::value('trace', $result));
     }
     return $result['id'];
@@ -1458,9 +1465,8 @@ class CiviUnitTestCase extends PHPUnit_Extensions_Database_TestCase {
    * @return int groupId of created group
    *
    */
-  function groupCreate($params = NULL) {
-    if ($params === NULL) {
-      $params = array(
+  function groupCreate($params = array()) {
+    $params = array_merge(array(
         'name' => 'Test Group 1',
         'domain_id' => 1,
         'title' => 'New Test Group Created',
@@ -1471,8 +1477,7 @@ class CiviUnitTestCase extends PHPUnit_Extensions_Database_TestCase {
           '1' => 1,
           '2' => 1,
         ),
-      );
-    }
+      ), $params);
 
     $result = $this->callAPISuccess('Group', 'create', $params);
     return $result['id'];
@@ -1492,6 +1497,24 @@ class CiviUnitTestCase extends PHPUnit_Extensions_Database_TestCase {
     $this->callAPISuccess('Group', 'delete', $params);
   }
 
+  /**
+   * Create a UFField
+   * @param array $params
+   */
+  function uFFieldCreate($params = array()) {
+    $params = array_merge(array(
+      'uf_group_id' => 1,
+      'field_name' => 'first_name',
+      'is_active' => 1,
+      'is_required' => 1,
+      'visibility' => 'Public Pages and Listings',
+      'is_searchable' => '1',
+      'label' => 'first_name',
+      'field_type' => 'Individual',
+      'weight' => 1,
+    ), $params);
+    $this->callAPISuccess('uf_field', 'create', $params);
+  }
   /**
    * Function to add a UF Join Entry
    *
@@ -1686,14 +1709,14 @@ class CiviUnitTestCase extends PHPUnit_Extensions_Database_TestCase {
     $customGroup = $this->CustomGroupMultipleCreateByParams($params);
     $ids['custom_group_id'] = $customGroup['id'];
 
-    $customField = $this->customFieldCreate($ids['custom_group_id']);
+    $customField = $this->customFieldCreate(array('custom_group_id' => $ids['custom_group_id'], 'label' => 'field_1' . $ids['custom_group_id']));
 
     $ids['custom_field_id'][] = $customField['id'];
 
-    $customField = $this->customFieldCreate($ids['custom_group_id'], 'field_2');
+    $customField = $this->customFieldCreate(array('custom_group_id' => $ids['custom_group_id'], 'default_value' => '', 'label' => 'field_2' . $ids['custom_group_id']));
     $ids['custom_field_id'][] = $customField['id'];
 
-    $customField = $this->customFieldCreate($ids['custom_group_id'], 'field_3');
+    $customField = $this->customFieldCreate(array('custom_group_id' => $ids['custom_group_id'], 'default_value' => '', 'label' => 'field_3' . $ids['custom_group_id']));
     $ids['custom_field_id'][] = $customField['id'];
 
     return $ids;
@@ -1714,7 +1737,7 @@ class CiviUnitTestCase extends PHPUnit_Extensions_Database_TestCase {
     $entity = substr(basename($filename), 0, strlen(basename($filename)) - 8);
     $params['extends'] =  $entity ? $entity : 'Contact';
     $customGroup = $this->CustomGroupCreate($params);
-    $customField = $this->customFieldCreate($customGroup['id'], $function);
+    $customField = $this->customFieldCreate(array('custom_group_id' => $customGroup['id'], 'label' => $function));
     CRM_Core_PseudoConstant::flush();
 
     return array('custom_group_id' => $customGroup['id'], 'custom_field_id' => $customField['id']);
@@ -1726,7 +1749,6 @@ class CiviUnitTestCase extends PHPUnit_Extensions_Database_TestCase {
    * @param int    $customGroupID
    */
   function customGroupDelete($customGroupID) {
-
     $params['id'] = $customGroupID;
     return $this->callAPISuccess('custom_group', 'delete', $params);
   }
@@ -1734,36 +1756,27 @@ class CiviUnitTestCase extends PHPUnit_Extensions_Database_TestCase {
   /**
    * Function to create custom field
    *
-   * @param int    $customGroupID
+   * @param array $params (custom_group_id) is required
    * @param string $name  name of custom field
    * @param int $apiversion API  version to use
    */
-  function customFieldCreate($customGroupID, $name = "Cust Field") {
-
-    $params = array(
-      'label' => $name,
-      'name' => $name,
-      'custom_group_id' => $customGroupID,
+  function customFieldCreate($params) {
+    $params = array_merge(array(
+      'label' => 'Custom Field',
       'data_type' => 'String',
       'html_type' => 'Text',
       'is_searchable' => 1,
       'is_active' => 1,
-      'version' => $this->_apiversion,
-    );
+      'default_value' => 'defaultValue',
+    ), $params);
 
-    $result = civicrm_api('custom_field', 'create', $params);
+    $result = $this->callAPISuccess('custom_field', 'create', $params);
 
     if ($result['is_error'] == 0 && isset($result['id'])) {
       CRM_Core_BAO_CustomField::getTableColumnGroup($result['id'], 1);
       // force reset of enabled components to help grab custom fields
       CRM_Core_Component::getEnabledComponents(1);
       return $result;
-    }
-
-    if (civicrm_error($result)
-      || !(CRM_Utils_Array::value('customFieldId', $result['result']))
-    ) {
-      throw new Exception('Could not create Custom Field ' . $result['error_message']);
     }
   }
 
@@ -1796,6 +1809,17 @@ class CiviUnitTestCase extends PHPUnit_Extensions_Database_TestCase {
     );
 
     return $this->callAPISuccess('Note', 'create', $params);
+  }
+
+  /**
+   * Enable CiviCampaign Component
+   */
+  function enableCiviCampaign() {
+    CRM_Core_BAO_ConfigSetting::enableComponent('CiviCampaign');
+    // force reload of config object
+    $config = CRM_Core_Config::singleton(TRUE, TRUE);
+    //flush cache by calling with reset
+    $activityTypes = CRM_Core_PseudoConstant::activityType(TRUE, TRUE, TRUE, 'name', TRUE);
   }
 
   /**
@@ -1834,6 +1858,14 @@ class CiviUnitTestCase extends PHPUnit_Extensions_Database_TestCase {
         $action = empty($action) ? 'getcount' : $action;
         $entityAction = 'GetCount';
       }
+      elseif (strstr($function, 'GetFields')) {
+        $action = empty($action) ? 'getfields' : $action;
+        $entityAction = 'GetFields';
+      }
+      elseif (strstr($function, 'GetList')) {
+        $action = empty($action) ? 'getlist' : $action;
+        $entityAction = 'GetList';
+      }
       elseif (strstr($function, 'Get')) {
         $action = empty($action) ? 'get' : $action;
         $entityAction = 'Get';
@@ -1850,9 +1882,9 @@ class CiviUnitTestCase extends PHPUnit_Extensions_Database_TestCase {
         $action = empty($action) ? 'subscribe' : $action;
         $entityAction = 'Subscribe';
       }
-      elseif (strstr($function, 'Set')) {
-        $action = empty($action) ? 'set' : $action;
-        $entityAction = 'Set';
+      elseif (strstr($function, 'Submit')) {
+        $action = empty($action) ? 'submit' : $action;
+        $entityAction = 'Submit';
       }
       elseif (strstr($function, 'Apply')) {
         $action = empty($action) ? 'apply' : $action;
@@ -1973,9 +2005,13 @@ class CiviUnitTestCase extends PHPUnit_Extensions_Database_TestCase {
           }
           if(in_array($key, $keysToUnset)) {
             unset($values[$key]);
+            break;
           }
           if(array_key_exists($key, $fieldsToChange) && !empty($value)) {
             $value = $fieldsToChange[$key];
+          }
+          if(is_string($value)) {
+            $value =  addslashes($value);
           }
         }
     }
@@ -2163,7 +2199,7 @@ AND    ( TABLE_NAME LIKE 'civicrm_value_%' )
     if (array_key_exists('id', $unformattedArray)) {
       unset($unformattedArray['id']);
     }
-    if (CRM_Utils_Array::value('values', $unformattedArray) && is_array($unformattedArray['values'])) {
+    if (!empty($unformattedArray['values']) && is_array($unformattedArray['values'])) {
       foreach ($unformattedArray['values'] as $key => $value) {
         if (is_Array($value)) {
           foreach ($value as $k => $v) {
@@ -2250,6 +2286,30 @@ AND    ( TABLE_NAME LIKE 'civicrm_value_%' )
     if ($this->origExtensionSystem !== NULL) {
       CRM_Extension_System::setSingleton($this->origExtensionSystem);
       $this->origExtensionSystem = NULL;
+    }
+  }
+
+  /**
+   * Temporarily alter the settings-metadata to add a mock setting.
+   *
+   * WARNING: The setting metadata will disappear on the next cache-clear.
+   *
+   * @param $extras
+   * @return void
+   */
+  function setMockSettingsMetaData($extras) {
+    CRM_Core_BAO_Setting::$_cache = array();
+    $this->callAPISuccess('system','flush', array());
+    CRM_Core_BAO_Setting::$_cache = array();
+
+    CRM_Utils_Hook::singleton()->setHook('civicrm_alterSettingsMetaData', function (&$metadata, $domainId, $profile) use ($extras) {
+      $metadata = array_merge($metadata, $extras);
+    });
+
+    $fields = $this->callAPISuccess('setting', 'getfields', array());
+    foreach ($extras as $key => $spec) {
+      $this->assertNotEmpty($spec['title']);
+      $this->assertEquals($spec['title'], $fields['values'][$key]['title']);
     }
   }
 

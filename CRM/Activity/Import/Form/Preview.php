@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -46,7 +46,7 @@ class CRM_Activity_Import_Form_Preview extends CRM_Import_Form_Preview {
    * @access public
    */
   public function preProcess() {
-    $skipColumnHeader = $this->controller->exportValue('UploadFile', 'skipColumnHeader');
+    $skipColumnHeader = $this->controller->exportValue('DataSource', 'skipColumnHeader');
 
     //get the data from the session
     $dataValues       = $this->get('dataValues');
@@ -111,8 +111,8 @@ class CRM_Activity_Import_Form_Preview extends CRM_Import_Form_Preview {
    * @access public
    */
   public function postProcess() {
-    $fileName         = $this->controller->exportValue('UploadFile', 'uploadFile');
-    $skipColumnHeader = $this->controller->exportValue('UploadFile', 'skipColumnHeader');
+    $fileName         = $this->controller->exportValue('DataSource', 'uploadFile');
+    $skipColumnHeader = $this->controller->exportValue('DataSource', 'skipColumnHeader');
     $invalidRowCount  = $this->get('invalidRowCount');
     $conflictRowCount = $this->get('conflictRowCount');
     $onDuplicate      = $this->get('onDuplicate');
@@ -128,14 +128,14 @@ class CRM_Activity_Import_Form_Preview extends CRM_Import_Form_Preview {
     foreach ($mapper as $key => $value) {
       $mapperKeys[$key] = $mapper[$key][0];
 
-      if (CRM_Utils_Array::value(1, $mapper[$key]) && is_numeric($mapper[$key][1])) {
+      if (!empty($mapper[$key][1]) && is_numeric($mapper[$key][1])) {
         $mapperLocType[$key] = $mapper[$key][1];
       }
       else {
         $mapperLocType[$key] = NULL;
       }
 
-      if (CRM_Utils_Array::value(2, $mapper[$key]) && (!is_numeric($mapper[$key][2]))) {
+      if (!empty($mapper[$key][2]) && (!is_numeric($mapper[$key][2]))) {
         $mapperPhoneType[$key] = $mapper[$key][2];
       }
       else {

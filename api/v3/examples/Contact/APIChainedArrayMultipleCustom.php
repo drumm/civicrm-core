@@ -55,6 +55,8 @@ function contact_get_expectedresult(){
           'nick_name' => '',
           'legal_name' => '',
           'image_URL' => '',
+          'preferred_communication_method' => '',
+          'preferred_language' => 'en_US',
           'preferred_mail_format' => 'Both',
           'first_name' => 'abc3',
           'middle_name' => '',
@@ -140,9 +142,9 @@ function contact_get_expectedresult(){
                     ),
                   '5' => array(
                       'entity_id' => '1',
-                      'latest' => '',
+                      'latest' => 'defaultValue',
                       'id' => '5',
-                      '1' => '',
+                      '1' => 'defaultValue',
                     ),
                   '6' => array(
                       'entity_id' => '1',

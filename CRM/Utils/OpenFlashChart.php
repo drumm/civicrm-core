@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -64,21 +64,21 @@ class CRM_Utils_OpenFlashChart {
     if (empty($params)) {
       return $chart;
     }
+    if (empty($params['multiValues'])) {
+      $params['multiValues'] = array($params['values']);
+    }
 
-    $values = CRM_Utils_Array::value('values', $params);
+    $values = CRM_Utils_Array::value('multiValues', $params);
     if (!is_array($values) || empty($values)) {
       return $chart;
     }
 
     // get the required data.
-    $xValues = $yValues = array();
-    foreach ($values as $xVal => $yVal) {
-      $yValues[] = (double)$yVal;
+    $chartTitle = !empty($params['legend']) ? $params['legend'] : ts('Bar Chart');
 
-      // we has to have x values as string.
-      $xValues[] = (string)$xVal;
-    }
-    $chartTitle = CRM_Utils_Array::value('legend', $params) ? $params['legend'] : ts('Bar Chart');
+    $xValues = $yValues = array();
+    $xValues = array_keys($values[0]);
+    $yValues = array_values($values[0]);
 
     //set y axis parameters.
     $yMin = 0;
@@ -90,28 +90,44 @@ class CRM_Utils_OpenFlashChart {
     }
     $ySteps = $yMax / 5;
 
-    // $bar = new bar( );
-    // glass seem to be more cool
-    $bar = new bar_glass();
-
-    //set values.
-    $bar->set_values($yValues);
-
-    // call user define function to handle on click event.
-    if ($onClickFunName = CRM_Utils_Array::value('on_click_fun_name', $params)) {
-      $bar->set_on_click($onClickFunName);
-    }
-
-    // get the currency.
+    $bars = array();
     $config = CRM_Core_Config::singleton();
     $symbol = $config->defaultCurrencySymbol;
+    foreach ($values as $barCount => $barVal) {
+      $bars[$barCount] = new bar_glass();
 
-    // set the tooltip.
-    $tooltip = CRM_Utils_Array::value('tip', $params, "$symbol #val#");
-    $bar->set_tooltip($tooltip);
+      $yValues = array_values($barVal);
+      foreach ($yValues as &$yVal) {
+        // type casting is required for chart to render values correctly
+        $yVal = (double) $yVal;
+      }
+      $bars[$barCount]->set_values($yValues);
+      if ($barCount > 0) {
+        // FIXME: for bars > 2, we'll need to come out with other colors
+        $bars[$barCount]->colour( '#BF3B69');
+      }
+
+      if ($barKey = CRM_Utils_Array::value($barCount, CRM_Utils_Array::value('barKeys', $params))) {
+        $bars[$barCount]->key($barKey,12);
+      }
+
+      // call user define function to handle on click event.
+      if ($onClickFunName = CRM_Utils_Array::value('on_click_fun_name', $params)) {
+        $bars[$barCount]->set_on_click($onClickFunName);
+      }
+
+      // get the currency to set in tooltip.
+      $tooltip = CRM_Utils_Array::value('tip', $params, "$symbol #val#");
+      $bars[$barCount]->set_tooltip($tooltip);
+    }
 
     // create x axis label obj.
     $xLabels = new x_axis_labels();
+    // set_labels function requires xValues array of string or x_axis_label
+    // so type casting array values to string values
+    array_walk($xValues, function(&$value, $index) {
+        $value = (string)$value;
+      });
     $xLabels->set_labels($xValues);
 
     // set angle for labels.
@@ -143,7 +159,9 @@ class CRM_Utils_OpenFlashChart {
     $chart->set_title($title);
 
     // add bar element to chart.
-    $chart->add_element($bar);
+    foreach ($bars as $bar) {
+      $chart->add_element($bar);
+    }
 
     // add x axis legend.
     if ($xName = CRM_Utils_Array::value('xname', $params)) {
@@ -185,7 +203,7 @@ class CRM_Utils_OpenFlashChart {
     foreach ($allValues as $label => $value) {
       $values[] = new pie_value((double)$value, $label);
     }
-    $graphTitle = CRM_Utils_Array::value('legend', $params) ? $params['legend'] : ts('Pie Chart');
+    $graphTitle = !empty($params['legend']) ? $params['legend'] : ts('Pie Chart');
 
     //get the currency.
     $config = CRM_Core_Config::singleton();
@@ -297,7 +315,7 @@ class CRM_Utils_OpenFlashChart {
       $count++;
     }
 
-    $chartTitle = CRM_Utils_Array::value('legend', $params) ? $params['legend'] : ts('Bar Chart');
+    $chartTitle = !empty($params['legend']) ? $params['legend'] : ts('Bar Chart');
 
     //set y axis parameters.
     $yMin = 0;
@@ -372,60 +390,62 @@ class CRM_Utils_OpenFlashChart {
   }
 
   static function chart($rows, $chart, $interval) {
-    $chartData = array();
+    $chartData = $dateKeys = array();
 
     switch ($interval) {
       case 'Month':
         foreach ($rows['receive_date'] as $key => $val) {
           list($year, $month) = explode('-', $val);
-          $graph[substr($rows['Month'][$key], 0, 3) . ' ' . $year] = $rows['value'][$key];
+          $dateKeys[] = substr($rows['Month'][$key], 0, 3) . ' ' . $year;
         }
-
-        $chartData = array(
-          'values' => $graph,
-          'legend' => ts('Monthly Contribution Summary'),
-        );
+        $legend = ts('Monthly');
         break;
 
       case 'Quarter':
         foreach ($rows['receive_date'] as $key => $val) {
           list($year, $month) = explode('-', $val);
-          $graph['Quarter ' . $rows['Quarter'][$key] . ' of ' . $year] = $rows['value'][$key];
+          $dateKeys[] = 'Quarter ' . $rows['Quarter'][$key] . ' of ' . $year;
         }
-
-        $chartData = array(
-          'values' => $graph,
-          'legend' => ts('Quarterly Contribution Summary'),
-        );
+        $legend = ts('Quarterly');
         break;
 
       case 'Week':
         foreach ($rows['receive_date'] as $key => $val) {
           list($year, $month) = explode('-', $val);
-          $graph['Week ' . $rows['Week'][$key] . ' of ' . $year] = $rows['value'][$key];
+          $dateKeys[] = 'Week ' . $rows['Week'][$key] . ' of ' . $year;
         }
-
-        $chartData = array(
-          'values' => $graph,
-          'legend' => ts('Weekly Contribution Summary'),
-        );
+        $legend = ts('Weekly');
         break;
 
       case 'Year':
         foreach ($rows['receive_date'] as $key => $val) {
           list($year, $month) = explode('-', $val);
-          $graph[$year] = $rows['value'][$key];
+          $dateKeys[] = $year;
         }
-        $chartData = array(
-          'values' => $graph,
-          'legend' => ts('Yearly Contribution Summary'),
-        );
+        $legend = ts('Yearly');
         break;
     }
 
+    if (!empty($dateKeys)) {
+      $graph = array();
+      if (!array_key_exists('multiValue', $rows)) {
+        $rows['multiValue'] = array($rows['value']);
+      }
+      foreach ($rows['multiValue'] as $key => $val) {
+        $graph[$key] = array_combine($dateKeys, $rows['multiValue'][$key]);
+      }
+      $chartData =
+        array(
+          'legend' => "$legend " . CRM_Utils_Array::value('legend', $rows, ts('Contribution')) . ' ' . ts('Summary'),
+          'values' => $graph[0],
+          'multiValues' => $graph,
+          'barKeys' => CRM_Utils_Array::value('barKeys', $rows, array()),
+        );
+    }
+
     // rotate the x labels.
-    $chartData['xLabelAngle'] = CRM_Utils_Array::value('xLabelAngle', $rows, 20);
-    if (CRM_Utils_Array::value('tip', $rows)) {
+    $chartData['xLabelAngle'] = CRM_Utils_Array::value('xLabelAngle', $rows, 0);
+    if (!empty($rows['tip'])) {
       $chartData['tip'] = $rows['tip'];
     }
 
@@ -436,7 +456,7 @@ class CRM_Utils_OpenFlashChart {
     // carry some chart params if pass.
     foreach (array(
       'xSize', 'ySize', 'divName') as $f) {
-      if (CRM_Utils_Array::value($f, $rows)) {
+      if (!empty($rows[$f])) {
         $chartData[$f] = $rows[$f];
       }
     }
@@ -458,14 +478,14 @@ class CRM_Utils_OpenFlashChart {
 
     // rotate the x labels.
     $chartData['xLabelAngle'] = CRM_Utils_Array::value('xLabelAngle', $chartInfo, 20);
-    if (CRM_Utils_Array::value('tip', $chartInfo)) {
+    if (!empty($chartInfo['tip'])) {
       $chartData['tip'] = $chartInfo['tip'];
     }
 
     // carry some chart params if pass.
     foreach (array(
       'xSize', 'ySize', 'divName') as $f) {
-      if (CRM_Utils_Array::value($f, $rows)) {
+      if (!empty($rows[$f])) {
         $chartData[$f] = $rows[$f];
       }
     }

@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -48,7 +48,7 @@ class CRM_Contact_Form_Task_PDFLetterCommon {
   static function preProcess(&$form) {
     $messageText    = array();
     $messageSubject = array();
-    $dao            = new CRM_Core_BAO_MessageTemplates();
+    $dao            = new CRM_Core_BAO_MessageTemplate();
     $dao->is_active = 1;
     $dao->find();
     while ($dao->fetch()) {
@@ -190,7 +190,17 @@ class CRM_Contact_Form_Task_PDFLetterCommon {
       }
     }
     else {
-      $form->addDefaultButtons(ts('Make PDF Letters'));
+      $form->addButtons(array(
+        array(
+          'type' => 'submit',
+          'name' => ts('Make PDF Letters'),
+          'isDefault' => TRUE,
+        ),
+        array(
+          'type' => 'cancel',
+          'name' => ts('Done'),
+        ),
+      ));
     }
 
     $form->addFormRule(array('CRM_Contact_Form_Task_PDFLetterCommon', 'formRule'), $form);
@@ -221,7 +231,7 @@ class CRM_Contact_Form_Task_PDFLetterCommon {
     $template = CRM_Core_Smarty::singleton();
 
     //Added for CRM-1393
-    if (CRM_Utils_Array::value('saveTemplate', $fields) && empty($fields['saveTemplateName'])) {
+    if (!empty($fields['saveTemplate']) && empty($fields['saveTemplateName'])) {
       $errors['saveTemplateName'] = ts("Enter name to save message template");
     }
     if (!is_numeric($fields['margin_left'])) {
@@ -250,7 +260,7 @@ class CRM_Contact_Form_Task_PDFLetterCommon {
     $formValues = $form->controller->exportValues($form->getName());
 
     // process message template
-    if (CRM_Utils_Array::value('saveTemplate', $formValues) || CRM_Utils_Array::value('updateTemplate', $formValues)) {
+    if (!empty($formValues['saveTemplate']) || !empty($formValues['updateTemplate'])) {
       $messageTemplate = array(
         'msg_text' => NULL,
         'msg_html' => $formValues['html_message'],
@@ -259,23 +269,23 @@ class CRM_Contact_Form_Task_PDFLetterCommon {
       );
 
       $messageTemplate['pdf_format_id'] = 'null';
-      if (CRM_Utils_Array::value('bind_format', $formValues) && $formValues['format_id'] > 0) {
+      if (!empty($formValues['bind_format']) && $formValues['format_id'] > 0) {
         $messageTemplate['pdf_format_id'] = $formValues['format_id'];
       }
-      if (CRM_Utils_Array::value('saveTemplate', $formValues) && $formValues['saveTemplate']) {
+      if (!empty($formValues['saveTemplate']) && $formValues['saveTemplate']) {
         $messageTemplate['msg_title'] = $formValues['saveTemplateName'];
-        CRM_Core_BAO_MessageTemplates::add($messageTemplate);
+        CRM_Core_BAO_MessageTemplate::add($messageTemplate);
       }
 
-      if (CRM_Utils_Array::value('updateTemplate', $formValues) && $formValues['template'] && $formValues['updateTemplate']) {
+      if (!empty($formValues['updateTemplate']) && $formValues['template'] && $formValues['updateTemplate']) {
         $messageTemplate['id'] = $formValues['template'];
 
         unset($messageTemplate['msg_title']);
-        CRM_Core_BAO_MessageTemplates::add($messageTemplate);
+        CRM_Core_BAO_MessageTemplate::add($messageTemplate);
       }
     }
     elseif (CRM_Utils_Array::value('template', $formValues) > 0) {
-      if (CRM_Utils_Array::value('bind_format', $formValues) && $formValues['format_id'] > 0) {
+      if (!empty($formValues['bind_format']) && $formValues['format_id'] > 0) {
         $query = "UPDATE civicrm_msg_template SET pdf_format_id = {$formValues['format_id']} WHERE id = {$formValues['template']}";
       }
       else {
@@ -283,7 +293,7 @@ class CRM_Contact_Form_Task_PDFLetterCommon {
       }
       CRM_Core_DAO::executeQuery($query, CRM_Core_DAO::$_nullArray);
     }
-    if (CRM_Utils_Array::value('update_format', $formValues)) {
+    if (!empty($formValues['update_format'])) {
       $bao = new CRM_Core_BAO_PdfFormat();
       $bao->savePdfFormat($formValues, $formValues['format_id']);
     }
@@ -317,7 +327,7 @@ class CRM_Contact_Form_Task_PDFLetterCommon {
    *
    * @access public
    *
-   * @return None
+   * @return void
    */
   static function postProcess(&$form) {
     list($formValues, $categories, $html_message, $messageToken, $returnProperties) = self::processMessageTemplate($form);
@@ -363,7 +373,7 @@ class CRM_Contact_Form_Task_PDFLetterCommon {
     CRM_Utils_System::civiExit(1);
   }
 
-  function createActivities($form, $html_message, $contactIds) {
+  static function createActivities($form, $html_message, $contactIds) {
     //Added for CRM-12682: Add activity subject and campaign fields
     $formValues     = $form->controller->exportValues($form->getName());
 
@@ -376,7 +386,7 @@ class CRM_Contact_Form_Task_PDFLetterCommon {
     );
     $activityParams = array(
       'subject' => $formValues['subject'],
-      'campaign_id' => $formValues['campaign_id'],
+      'campaign_id' => CRM_Utils_Array::value('campaign_id', $formValues),
       'source_contact_id' => $userID,
       'activity_type_id' => $activityTypeID,
       'activity_date_time' => date('YmdHis'),
@@ -410,7 +420,7 @@ class CRM_Contact_Form_Task_PDFLetterCommon {
     }
   }
 
-  function formatMessage(&$message) {
+  static function formatMessage(&$message) {
     $newLineOperators = array(
       'p' => array(
         'oper' => '<p>',

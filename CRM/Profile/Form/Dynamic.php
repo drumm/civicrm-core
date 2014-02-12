@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -109,7 +109,7 @@ class CRM_Profile_Form_Dynamic extends CRM_Profile_Form {
     $errors = array();
 
     // if no values, return
-    if (empty($fields) || !CRM_Utils_Array::value('edit', $fields)) {
+    if (empty($fields) || empty($fields['edit'])) {
       return TRUE;
     }
 

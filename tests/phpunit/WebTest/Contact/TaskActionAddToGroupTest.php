@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -48,6 +48,7 @@ class WebTest_Contact_TaskActionAddToGroupTest extends CiviSeleniumTestCase {
       $cids[] = $this->urlArg('cid');
 
       // update email of new contact
+      $this->waitForElementPresent("//ul[@id='actions']/li/a/span[text()='Edit']");
       $this->click("//ul[@id='actions']/li/a/span[text()='Edit']");
       $this->waitForPageToLoad($this->getTimeoutMsec());
       $this->type("email_1_email", $emailString . $i . 'webtest');

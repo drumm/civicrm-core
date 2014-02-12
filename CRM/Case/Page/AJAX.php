@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -43,8 +43,8 @@ class CRM_Case_Page_AJAX {
   static function unclosedCases() {
     $criteria = explode('-', CRM_Utils_Type::escape(CRM_Utils_Array::value('s', $_GET), 'String'));
 
-    $limit = NULL;
-    if ($limit = CRM_Utils_Array::value('limit', $_GET)) {
+    $limit = CRM_Utils_Array::value('limit', $_GET);
+    if ($limit) {
       $limit = CRM_Utils_Type::escape($limit, 'Integer');
     }
 
@@ -60,18 +60,18 @@ class CRM_Case_Page_AJAX {
       $excludeCaseIds = explode(',', $excludeIdStr);
     }
     $unclosedCases = CRM_Case_BAO_Case::getUnclosedCases($params, $excludeCaseIds);
-
+    $results = array();
     foreach ($unclosedCases as $caseId => $details) {
-      echo $details['sort_name'] . ' (' . $details['case_type'] . ': ' . $details['case_subject'] . ') ' . "|$caseId|" . $details['contact_id'] . '|' . $details['case_type'] . '|' . $details['sort_name'] . "\n";
+      $results["$caseId|" . $details['contact_id'] . '|' . $details['case_type'] . '|' . $details['sort_name']] = $details['sort_name'] . ' (' . $details['case_type'] . ': ' . $details['case_subject'] . ')';
     }
-
-    CRM_Utils_System::civiExit();
+    CRM_Core_Page_AJAX::autocompleteResults($results);
   }
 
   function processCaseTags() {
 
     $caseId = CRM_Utils_Type::escape($_POST['case_id'], 'Integer');
     $tags = CRM_Utils_Type::escape($_POST['tag'], 'String');
+    $tagList = $_POST['taglist'];
 
     if (empty($caseId)) {
       echo 'false';
@@ -83,18 +83,24 @@ class CRM_Case_Page_AJAX {
       $tagIds = explode(',', $tags);
     }
 
-    $params = array(
-      'entity_id' => $caseId,
-      'entity_table' => 'civicrm_case',
-    );
+    if (!empty($tagIds)) {
+      $params = array(
+        'entity_id' => $caseId,
+        'entity_table' => 'civicrm_case',
+      );
 
-    CRM_Core_BAO_EntityTag::del($params);
+      CRM_Core_BAO_EntityTag::del($params);
 
-    foreach ($tagIds as $tagid) {
-      if (is_numeric($tagid)) {
-        $params['tag_id'] = $tagid;
-        CRM_Core_BAO_EntityTag::add($params);
+      foreach ($tagIds as $tagid) {
+        if (is_numeric($tagid)) {
+          $params['tag_id'] = $tagid;
+          CRM_Core_BAO_EntityTag::add($params);
+        }
       }
+    }
+
+    if (!empty($tagList)) {
+      CRM_Core_Form_Tag::postProcess($tagList, $caseId, 'civicrm_case', CRM_Core_DAO::$_nullObject);
     }
 
     $session = CRM_Core_Session::singleton();

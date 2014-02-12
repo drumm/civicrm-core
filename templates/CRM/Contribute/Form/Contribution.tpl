@@ -1,6 +1,6 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -88,7 +88,8 @@
       {if !$contributionMode and !$email and $outBound_option != 2}
         {assign var='profileCreateCallback' value=1 }
       {/if}
-      {include file="CRM/Contact/Form/NewContact.tpl"}
+      {* note that if we are using multiple instances of NewContact always pass values for blockNo and prefix *}
+      {include file="CRM/Contact/Form/NewContact.tpl" blockNo=1 prefix=''}
     {/if}
     {if $contributionMode}
     <tr class="crm-contribution-form-block-payment_processor_id"><td class="label nowrap">{$form.payment_processor_id.label}<span class="marker"> * </span></td><td>{$form.payment_processor_id.html}</td></tr>
@@ -297,8 +298,7 @@
           </tr>
           <tr class="crm-contribution-form-block-payment_instrument_id">
             <td class="label">{$form.payment_instrument_id.label}</td>
-            <td {$valueStyle}>{$form.payment_instrument_id.html}<br />
-              <span class="description">{ts}Leave blank for non-monetary contributions.{/ts}</span>
+            <td {$valueStyle}>{$form.payment_instrument_id.html} {help id="payment_instrument_id"}</td>
             </td>
           </tr>
           {if $showCheckNumber || !$isOnline}
@@ -458,7 +458,7 @@
   {literal}
   <script type="text/javascript">
   function verify( ) {
-    if (cj('#is_email_receipt').attr( 'checked' )) {
+    if (cj('#is_email_receipt').prop('checked' )) {
       var ok = confirm( '{/literal}{ts escape='js'}Click OK to save this contribution record AND send a receipt to the contributor now{/ts}{literal}.' );
       if (!ok) {
         return false;
@@ -485,7 +485,7 @@
       });
 
       function checkEmailDependancies( ) {
-        if (cj('#is_email_receipt').attr( 'checked' )) {
+        if (cj('#is_email_receipt').prop('checked' )) {
           cj('#fromEmail').show( );
           cj('#receiptDate').hide( );
         }

@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -77,9 +77,19 @@ class CRM_Report_Form_Contribute_Lybunt extends CRM_Report_Form {
             'default' => TRUE,
             'required' => TRUE,
           ),
-      'first_name' => array('title' => ts('First Name'),
+          'first_name' => array(
+            'title' => ts('First Name'),
           ),
-      'last_name' => array('title' => ts('Last Name'),
+          'last_name' => array(
+            'title' => ts('Last Name'),
+          ),
+          'contact_type' =>
+          array(
+            'title' => ts('Contact Type'),
+          ),
+          'contact_sub_type' =>
+          array(
+            'title' => ts('Contact SubType'),
           ),
         ),
         'filters' =>
@@ -114,6 +124,9 @@ class CRM_Report_Form_Contribute_Lybunt extends CRM_Report_Form {
           ),
         ),
       ),
+    )
+    + $this->addAddressFields()
+    + array(
       'civicrm_contribution' =>
       array(
         'dao' => 'CRM_Contribute_DAO_Contribution',
@@ -211,9 +224,7 @@ class CRM_Report_Form_Contribute_Lybunt extends CRM_Report_Form {
       if (array_key_exists('fields', $table)) {
         foreach ($table['fields'] as $fieldName => $field) {
 
-          if (CRM_Utils_Array::value('required', $field) ||
-            CRM_Utils_Array::value($fieldName, $this->_params['fields'])
-          ) {
+          if (!empty($field['required']) || !empty($this->_params['fields'][$fieldName])) {
             if ($fieldName == 'total_amount') {
               $select[] = "SUM({$field['dbAlias']}) as {$tableName}_{$fieldName}";
 
@@ -232,7 +243,7 @@ class CRM_Report_Form_Contribute_Lybunt extends CRM_Report_Form {
               $this->_columnHeaders["{$tableName}_{$fieldName}"]['title'] = CRM_Utils_Array::value('title', $field);
             }
 
-            if (CRM_Utils_Array::value('no_display', $field)) {
+            if (!empty($field['no_display'])) {
               $this->_columnHeaders["{$tableName}_{$fieldName}"]['no_display'] = TRUE;
             }
           }
@@ -249,13 +260,21 @@ class CRM_Report_Form_Contribute_Lybunt extends CRM_Report_Form {
         FROM  civicrm_contribution  {$this->_aliases['civicrm_contribution']}
               INNER JOIN civicrm_contact {$this->_aliases['civicrm_contact']}
                       ON {$this->_aliases['civicrm_contact']}.id = {$this->_aliases['civicrm_contribution']}.contact_id
-              {$this->_aclFrom}
+              {$this->_aclFrom}";
+
+    if ($this->isTableSelected('civicrm_email')) {
+      $this->_from .= "
               LEFT  JOIN civicrm_email  {$this->_aliases['civicrm_email']}
-                      ON {$this->_aliases['civicrm_contact']}.id = {$this->_aliases['civicrm_email']}.contact_id AND
-                         {$this->_aliases['civicrm_email']}.is_primary = 1
+                      ON {$this->_aliases['civicrm_contact']}.id = {$this->_aliases['civicrm_email']}.contact_id
+                     AND {$this->_aliases['civicrm_email']}.is_primary = 1";
+    }
+    if ($this->isTableSelected('civicrm_phone')) {
+      $this->_from .= "
               LEFT  JOIN civicrm_phone  {$this->_aliases['civicrm_phone']}
                       ON {$this->_aliases['civicrm_contact']}.id = {$this->_aliases['civicrm_phone']}.contact_id AND
-                         {$this->_aliases['civicrm_phone']}.is_primary = 1 ";
+                         {$this->_aliases['civicrm_phone']}.is_primary = 1";
+    }
+    $this->addAddressFromClause();
   }
 
   function where() {
@@ -351,7 +370,7 @@ class CRM_Report_Form_Contribute_Lybunt extends CRM_Report_Form {
     $this->groupBy();
 
     $rows = $contactIds = array();
-    if (!CRM_Utils_Array::value('charts', $this->_params)) {
+    if (empty($this->_params['charts'])) {
       $this->limit();
       $getContacts = "SELECT SQL_CALC_FOUND_ROWS {$this->_aliases['civicrm_contact']}.id as cid {$this->_from} {$this->_where}  GROUP BY {$this->_aliases['civicrm_contact']}.id {$this->_limit}";
 
@@ -364,8 +383,8 @@ class CRM_Report_Form_Contribute_Lybunt extends CRM_Report_Form {
       $this->setPager();
     }
 
-    if (!empty($contactIds) || CRM_Utils_Array::value('charts', $this->_params)) {
-      if (CRM_Utils_Array::value('charts', $this->_params)) {
+    if (!empty($contactIds) || !empty($this->_params['charts'])) {
+      if (!empty($this->_params['charts'])) {
         $sql = "{$this->_select} {$this->_from} {$this->_where} {$this->_groupBy}";
       }
       else {
@@ -440,6 +459,9 @@ class CRM_Report_Form_Contribute_Lybunt extends CRM_Report_Form {
   }
 
   function alterDisplay(&$rows) {
+    // custom code to alter rows
+    $entryFound = FALSE;
+
     foreach ($rows as $rowNum => $row) {
       //Convert Display name into link
       if (array_key_exists('civicrm_contact_sort_name', $row) &&
@@ -451,6 +473,7 @@ class CRM_Report_Form_Contribute_Lybunt extends CRM_Report_Form {
         );
         $rows[$rowNum]['civicrm_contact_sort_name_link'] = $url;
         $rows[$rowNum]['civicrm_contact_sort_name_hover'] = ts("View Contribution Details for this Contact.");
+        $entryFound = TRUE;
       }
 
       // convert campaign_id to campaign title
@@ -459,6 +482,14 @@ class CRM_Report_Form_Contribute_Lybunt extends CRM_Report_Form {
           $rows[$rowNum]['civicrm_contribution_campaign_id'] = $this->activeCampaigns[$value];
           $entryFound = TRUE;
         }
+      }
+
+      $entryFound = $this->alterDisplayAddressFields($row, $rows, $rowNum, 'contribute/detail', 'List all contribution(s)') ? TRUE : $entryFound;
+
+      // skip looking further in rows, if first row itself doesn't
+      // have the column we need
+      if (!$entryFound) {
+        break;
       }
     }
   }

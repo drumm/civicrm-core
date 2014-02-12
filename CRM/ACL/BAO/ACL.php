@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -648,6 +648,7 @@ SELECT $acl.*
     $dao = new CRM_ACL_DAO_ACL();
     $dao->copyValues($params);
     $dao->save();
+    return $dao;
   }
 
   static function retrieve(&$params, &$defaults) {
@@ -822,15 +823,7 @@ SELECT g.*
 
     $acls = CRM_ACL_BAO_Cache::build($contactID);
 
-    if (!empty($includedGroups) &&
-      is_array($includedGroups)
-    ) {
-      $ids = $includedGroups;
-    }
-    else {
-      $ids = array();
-    }
-
+    $ids = array();
     if (!empty($acls)) {
       $aclKeys = array_keys($acls);
       $aclKeys = implode(',', $aclKeys);
@@ -870,6 +863,12 @@ ORDER BY a.object_id
         }
         $cache->set($cacheKey, $ids);
       }
+    }
+
+    if (empty($ids) && !empty($includedGroups) &&
+      is_array($includedGroups)
+    ) {
+      $ids = $includedGroups;
     }
 
     CRM_Utils_Hook::aclGroup($type, $contactID, $tableName, $allGroups, $ids);

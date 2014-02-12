@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -49,7 +49,7 @@ class CRM_Admin_Form_MessageTemplates extends CRM_Admin_Form {
     );
     $this->assign('action', $this->_action);
 
-    $this->_BAOName = 'CRM_Core_BAO_MessageTemplates';
+    $this->_BAOName = 'CRM_Core_BAO_MessageTemplate';
     $this->set('BAOName', $this->_BAOName);
     parent::preProcess();
   }
@@ -60,12 +60,12 @@ class CRM_Admin_Form_MessageTemplates extends CRM_Admin_Form {
    *
    * @access public
    *
-   * @return None
+   * @return void
    */
   public function setDefaultValues() {
     $defaults = $this->_values;
 
-    if (!CRM_Utils_Array::value('pdf_format_id', $defaults)) {
+    if (empty($defaults['pdf_format_id'])) {
       $defaults['pdf_format_id'] = 'null';
     }
 
@@ -112,7 +112,7 @@ class CRM_Admin_Form_MessageTemplates extends CRM_Admin_Form {
   /**
    * Function to build the form
    *
-   * @return None
+   * @return void
    * @access public
    */
   public function buildQuickForm() {
@@ -148,11 +148,11 @@ class CRM_Admin_Form_MessageTemplates extends CRM_Admin_Form {
     CRM_Utils_System::appendBreadCrumb($breadCrumb);
 
     $this->applyFilter('__ALL__', 'trim');
-    $this->add('text', 'msg_title', ts('Message Title'), CRM_Core_DAO::getAttribute('CRM_Core_DAO_MessageTemplates', 'msg_title'), TRUE);
+    $this->add('text', 'msg_title', ts('Message Title'), CRM_Core_DAO::getAttribute('CRM_Core_DAO_MessageTemplate', 'msg_title'), TRUE);
 
     $this->add('text', 'msg_subject',
       ts('Message Subject'),
-      CRM_Core_DAO::getAttribute('CRM_Core_DAO_MessageTemplates', 'msg_subject')
+      CRM_Core_DAO::getAttribute('CRM_Core_DAO_MessageTemplate', 'msg_subject')
     );
 
     //get the tokens.
@@ -195,7 +195,7 @@ class CRM_Admin_Form_MessageTemplates extends CRM_Admin_Form {
 
     // if not a system message use a wysiwyg editor, CRM-5971
     if ($this->_id &&
-      CRM_Core_DAO::getFieldValue('CRM_Core_DAO_MessageTemplates',
+      CRM_Core_DAO::getFieldValue('CRM_Core_DAO_MessageTemplate',
         $this->_id,
         'workflow_id'
       )
@@ -231,11 +231,11 @@ class CRM_Admin_Form_MessageTemplates extends CRM_Admin_Form {
    *
    * @access public
    *
-   * @return None
+   * @return void
    */
   public function postProcess() {
     if ($this->_action & CRM_Core_Action::DELETE) {
-      CRM_Core_BAO_MessageTemplates::del($this->_id);
+      CRM_Core_BAO_MessageTemplate::del($this->_id);
     }
     elseif ($this->_action & CRM_Core_Action::VIEW) {
       // currently, the above action is used solely for previewing default workflow templates
@@ -256,7 +256,7 @@ class CRM_Admin_Form_MessageTemplates extends CRM_Admin_Form {
         $params['is_active'] = TRUE;
       }
 
-      $messageTemplate = CRM_Core_BAO_MessageTemplates::add($params);
+      $messageTemplate = CRM_Core_BAO_MessageTemplate::add($params);
       CRM_Core_Session::setStatus(ts('The Message Template \'%1\' has been saved.', array(1 => $messageTemplate->msg_title)), ts('Saved'), 'success');
 
       if ($this->_workflow_id) {

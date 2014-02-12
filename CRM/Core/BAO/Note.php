@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -155,7 +155,7 @@ class CRM_Core_BAO_Note extends CRM_Core_DAO_Note {
     }
 
     $note->copyValues($params);
-    if (!CRM_Utils_Array::value('contact_id', $params)) {
+    if (empty($params['contact_id'])) {
       if ($params['entity_table'] == 'civicrm_contact') {
         $note->contact_id = $params['entity_id'];
       }
@@ -309,10 +309,12 @@ class CRM_Core_BAO_Note extends CRM_Core_DAO_Note {
       $childNote = new CRM_Core_DAO_Note();
       $childNote->id = $childId;
       $childNote->delete();
+      $childNote->free();
       $recent[] = $childId;
     }
 
     $return = $note->delete();
+    $note->free();
     if ($showStatus) {
       CRM_Core_Session::setStatus($status, ts('Deleted'), 'success');
     }

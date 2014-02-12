@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -77,10 +77,13 @@ class CRM_Contact_Page_View_Relationship extends CRM_Core_Page {
 
     $employerId = CRM_Core_DAO::getFieldValue('CRM_Contact_DAO_Contact', $this->_contactId, 'employer_id');
     $this->assign('isCurrentEmployer', FALSE);
+
+    $relTypes = CRM_Utils_Array::index(array('name_a_b'), CRM_Core_PseudoConstant::relationshipType('name'));
+    
     if ($viewRelationship[$this->_id]['employer_id'] == $this->_contactId) {
       $this->assign('isCurrentEmployer', TRUE);
     }
-    elseif ($relType == 4 &&
+    elseif ($relType == $relTypes['Employee of']['id'] &&
       ($viewRelationship[$this->_id]['cid'] == $employerId)
     ) {
       // make sure we are viewing employee of relationship
@@ -168,6 +171,8 @@ class CRM_Contact_Page_View_Relationship extends CRM_Core_Page {
     // from relationship tab, not from dashboard
     $this->assign('relationshipTabContext', TRUE);
     $this->assign('inactiveRelationships', $inactiveRelationships);
+
+    $this->ajaxResponse['tabCount'] = count($currentRelationships);
   }
 
   /**
@@ -263,7 +268,7 @@ class CRM_Contact_Page_View_Relationship extends CRM_Core_Page {
     }
 
     // if this is called from case view, suppress browse relationships form
-    if (!$this->_caseId) {
+    else {
       $this->browse();
     }
 
@@ -309,10 +314,6 @@ class CRM_Contact_Page_View_Relationship extends CRM_Core_Page {
    */
   static function &links() {
     if (!(self::$_links)) {
-      $deleteExtra  = ts('Are you sure you want to delete this relationship?');
-      $disableExtra = ts('Are you sure you want to disable this relationship?');
-      $enableExtra  = ts('Are you sure you want to re-enable this relationship?');
-
       self::$_links = array(
         CRM_Core_Action::VIEW => array(
           'name' => ts('View'),
@@ -328,23 +329,18 @@ class CRM_Contact_Page_View_Relationship extends CRM_Core_Page {
         ),
         CRM_Core_Action::ENABLE => array(
           'name' => ts('Enable'),
-          'url' => 'civicrm/contact/view/rel',
-          'qs' => 'action=enable&reset=1&cid=%%cid%%&id=%%id%%&rtype=%%rtype%%&selectedChild=rel',
-          'extra' => 'onclick = "return confirm(\'' . $enableExtra . '\');"',
+          'ref' => 'crm-enable-disable',
           'title' => ts('Enable Relationship'),
         ),
         CRM_Core_Action::DISABLE => array(
           'name' => ts('Disable'),
-          'url' => 'civicrm/contact/view/rel',
-          'qs' => 'action=disable&reset=1&cid=%%cid%%&id=%%id%%&rtype=%%rtype%%&selectedChild=rel',
-          'extra' => 'onclick = "return confirm(\'' . $disableExtra . '\');"',
+          'ref' => 'crm-enable-disable',
           'title' => ts('Disable Relationship'),
         ),
         CRM_Core_Action::DELETE => array(
           'name' => ts('Delete'),
           'url' => 'civicrm/contact/view/rel',
           'qs' => 'action=delete&reset=1&cid=%%cid%%&id=%%id%%&rtype=%%rtype%%',
-          'extra' => 'onclick = "if (confirm(\'' . $deleteExtra . '\') ) this.href+=\'&amp;confirmed=1\'; else return false;"',
           'title' => ts('Delete Relationship'),
         ),
         // FIXME: Not sure what to put as the key.

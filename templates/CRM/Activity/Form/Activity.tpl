@@ -1,6 +1,6 @@
 {*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -39,50 +39,7 @@
     <div class="crm-block crm-form-block crm-activity-form-block">
   {/if}
   {* added onload javascript for source contact*}
-  {literal}
-  <script type="text/javascript">
-  var assignee_contact = '';
-
-  {/literal}
-  {if $assignee_contact}
-    var assignee_contact = {$assignee_contact};
-  {/if}
-  {literal}
-
-  //loop to set the value of cc and bcc if form rule.
-  var assignee_contact_id = null;
-  var toDataUrl = "{/literal}{crmURL p='civicrm/ajax/checkemail' q='id=1&noemail=1' h=0 }{literal}"; {/literal}
-  {foreach from=","|explode:"assignee" key=key item=element}
-    {assign var=currentElement value=`$element`_contact_id}
-    {if $form.$currentElement.value }
-      {literal} var {/literal}{$currentElement}{literal} = cj.ajax({ url: toDataUrl + "&cid={/literal}{$form.$currentElement.value}{literal}", async: false }).responseText;{/literal}
-    {/if}
-  {/foreach}
-  {literal}
-
-  if ( assignee_contact_id ) {
-    eval( 'assignee_contact = ' + assignee_contact_id );
-  }
-
-  cj(function( ) {
-    {/literal}
-    {if $source_contact and $admin and $action neq 4}
-      {literal} cj( '#source_contact_id' ).val( "{/literal}{$source_contact}{literal}");{/literal}
-    {/if}
-    {literal}
-
-    var sourceDataUrl = "{/literal}{$dataUrl}{literal}";
-    var tokenDataUrl_assignee  = "{/literal}{$tokenUrl}&context=activity_assignee{literal}";
-    var hintText = "{/literal}{ts escape='js'}Type in a partial or complete name of an existing contact.{/ts}{literal}";
-    cj( "#assignee_contact_id").tokenInput( tokenDataUrl_assignee, { prePopulate: assignee_contact, theme: 'facebook', hintText: hintText });
-    cj( 'ul.token-input-list-facebook, div.token-input-dropdown-facebook' ).css( 'width', '450px' );
-    cj('#source_contact_id').autocomplete( sourceDataUrl, { width : 180, selectFirst : false, hintText: hintText, matchContains: true, minChars: 1, max: {/literal}{crmSetting name="search_autocomplete_count" group="Search Preferences"}{literal}
-    }).result( function(event, data, formatted) { cj( "#source_contact_qid" ).val( data[1] );
-      }).bind( 'click', function( ) { cj( "#source_contact_qid" ).val(''); });
-  });
-  </script>
-
-  {/literal}
+  {include file="CRM/Activity/Form/ActivityJs.tpl" tokenContext="activity"}
   {if !$action or ( $action eq 1 ) or ( $action eq 2 ) }
   <div class="crm-submit-buttons">{include file="CRM/common/formButtons.tpl" location="top"}</div>
   {/if}
@@ -120,7 +77,7 @@
   <tr class="crm-activity-form-block-source_contact_id">
     <td class="label">{$form.source_contact_id.label}</td>
     <td class="view-value">
-      {if $admin and $action neq 4}{$form.source_contact_id.html} {else} {$source_contact_value} {/if}
+      {$form.source_contact_id.html}
     </td>
   </tr>
 
@@ -135,7 +92,7 @@
       {elseif $action neq 4}
       <td class="label">{ts}With Contact{/ts}</td>
       <td class="view-value">
-        {include file="CRM/Contact/Form/NewContact.tpl" noLabel=true skipBreak=true multiClient=true}
+        {include file="CRM/Contact/Form/NewContact.tpl" noLabel=true skipBreak=true multiClient=true parent="activity" showNewSelect=true}
         {if $action eq 1}
         <br/>
         {$form.is_multi_activity.html}&nbsp;{$form.is_multi_activity.label} {help id="id-is_multi_activity"}
@@ -151,19 +108,6 @@
     {/if}
   </tr>
 
-  {if $action neq 4}
-    <tr class="crm-activity-form-block-swap_target_assignee">
-      <td class="label"></td>
-      <td>
-        <a href="#" class="button" id="swap_target_assignee">
-          <span>
-            <div class="icon swap-icon"></div>{ts}Swap Target and Assignee Contacts{/ts}
-          </span>
-        </div>
-      </td>
-    </tr>
-  {/if}
-
   <tr class="crm-activity-form-block-assignee_contact_id">
     {if $action eq 4}
       <td class="label">{ts}Assigned To{/ts}</td><td class="view-value">
@@ -173,7 +117,13 @@
     </td>
       {else}
       <td class="label">{ts}Assigned To{/ts}</td>
-      <td>{$form.assignee_contact_id.html}
+      <td>
+        <a href="#" class="button" id="swap_target_assignee" title="{ts}Swap Target and Assignee Contacts{/ts}" style="float:right;">
+          <span>
+            <div class="icon swap-icon"></div>
+          </span>
+        </a>
+        {$form.assignee_contact_id.html}<br />
         {edit}
           <span class="description">{ts}You can optionally assign this activity to someone. Assigned activities will appear in their Activities listing at CiviCRM Home.{/ts}
           {if $activityAssigneeNotification}
@@ -251,18 +201,8 @@
   {if $form.tag.html}
   <tr class="crm-activity-form-block-tag">
     <td class="label">{$form.tag.label}</td>
-    <td class="view-value"><div class="crm-select-container">{$form.tag.html}</div>
-      {literal}
-        <script type="text/javascript">
-          cj(".crm-activity-form-block-tag select[multiple]").crmasmSelect({
-            addItemTarget: 'bottom',
-            animate: true,
-            highlight: true,
-            sortable: true,
-            respectParents: true
-          });
-        </script>
-      {/literal}
+    <td class="view-value">
+      <div class="crm-select-container">{$form.tag.html}</div>
     </td>
   </tr>
   {/if}
@@ -311,6 +251,14 @@
               <td class="label">{$form.followup_activity_subject.label}</td>
               <td>{$form.followup_activity_subject.html|crmAddClass:huge}</td>
             </tr>
+              <tr>
+                  <td class="label">{ts}Assign To{/ts}</td>
+                  <td>{$form.followup_assignee_contact_id.html}
+                      {edit}<span class="description">{ts}You can optionally assign this activity to someone. Assigned activities will appear in their Activities listing at CiviCRM Home.{/ts}
+                          </span>
+                      {/edit}
+                  </td>
+              </tr>
           </table>
         </div><!-- /.crm-accordion-body -->
       </div><!-- /.crm-accordion-wrapper -->

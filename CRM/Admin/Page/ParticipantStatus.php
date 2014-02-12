@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.3                                                |
+ | CiviCRM version 4.4                                                |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2013                                |
  +--------------------------------------------------------------------+
@@ -55,14 +55,12 @@ class CRM_Admin_Page_ParticipantStatus extends CRM_Core_Page_Basic {
         ),
         CRM_Core_Action::DISABLE => array(
           'name' => ts('Disable'),
-          'extra' => 'onclick = "enableDisable( %%id%%,\'' . 'CRM_Event_BAO_ParticipantStatusType' . '\',\'' . 'enable-disable' . '\' );"',
-          'ref' => 'disable-action',
+          'ref' => 'crm-enable-disable',
           'title' => ts('Disable Status'),
         ),
         CRM_Core_Action::ENABLE => array(
           'name' => ts('Enable'),
-          'extra' => 'onclick = "enableDisable( %%id%%,\'' . 'CRM_Event_BAO_ParticipantStatusType' . '\',\'' . 'disable-enable' . '\' );"',
-          'ref' => 'enable-action',
+          'ref' => 'crm-enable-disable',
           'title' => ts('Enable Status'),
         ),
       );
@@ -71,6 +69,7 @@ class CRM_Admin_Page_ParticipantStatus extends CRM_Core_Page_Basic {
   }
 
   function browse() {
+    CRM_Core_Resources::singleton()->addScriptFile('civicrm', 'js/crm.livePage.js');
     $statusTypes = array();
 
     $dao = new CRM_Event_DAO_ParticipantStatusType;
@@ -92,7 +91,16 @@ class CRM_Admin_Page_ParticipantStatus extends CRM_Core_Page_Basic {
         }
       }
       $action -= $dao->is_active ? CRM_Core_Action::ENABLE : CRM_Core_Action::DISABLE;
-      $statusTypes[$dao->id]['action'] = CRM_Core_Action::formLink(self::links(), $action, array('id' => $dao->id));
+      $statusTypes[$dao->id]['action'] = CRM_Core_Action::formLink(
+        self::links(),
+        $action,
+        array('id' => $dao->id),
+        ts('more'),
+        FALSE,
+        'participantStatusType.manage.action',
+        'ParticipantStatusType',
+        $dao->id
+      );
       $statusTypes[$dao->id]['visibility'] = $visibilities[$dao->visibility_id];
     }
     $this->assign('rows', $statusTypes);
